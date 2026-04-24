@@ -94,3 +94,40 @@
 .cta h2 {
     margin-bottom: 20px;
 }
+
+/* 🔥 GLOW EFFECT */
+.logo {
+    text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14;
+}
+
+/* HERO GLOW TEXT */
+.hero-content h1 {
+    text-shadow: 0 0 15px #39ff14;
+}
+
+/* BUTTON GLOW */
+.cta-btn {
+    box-shadow: 0 0 10px #00f7ff;
+}
+
+.cta-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px #ff00ff, 0 0 50px #ff00ff;
+}
+
+/* FEATURE CARDS GLASS EFFECT */
+.feature-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+}
+
+/* HERO IMAGE FLOAT ANIMATION */
+.hero-image img {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
