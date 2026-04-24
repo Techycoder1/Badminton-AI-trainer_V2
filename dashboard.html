@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Shuttlestepz</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#dashboard { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* Welcome bar */
+.welcome-bar {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 24px; margin-bottom: 32px; flex-wrap: wrap;
+}
+
+.welcome-left {}
+
+.welcome-tag {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2.5px;
+  color: var(--text3); margin-bottom: 6px;
+}
+
+.welcome-name {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800; color: var(--text);
+  line-height: 1; margin-bottom: 8px;
+}
+
+.welcome-name span { color: var(--accent); }
+
+.welcome-meta {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Upgrade banner */
+.upgrade-banner {
+  background: linear-gradient(135deg, rgba(240,192,64,0.08) 0%, rgba(240,192,64,0.04) 100%);
+  border: 1px solid var(--gold-dim);
+  border-radius: var(--r-xl);
+  padding: 20px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.upgrade-banner.hidden { display: none; }
+
+.ub-left { display: flex; align-items: center; gap: 14px; }
+
+.ub-icon {
+  font-size: 28px; flex-shrink: 0;
+}
+
+.ub-title {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700;
+  color: var(--gold); margin-bottom: 3px;
+}
+
+.ub-desc {
+  font-size: 12px; color: var(--text2); line-height: 1.5;
+}
+
+/* Session limiter */
+.session-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 28px;
+}
+
+.session-bar.hidden { display: none; }
+
+.sb-info { flex: 1; }
+
+.sb-label {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--text3); margin-bottom: 6px;
+}
+
+.sb-count {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 800;
+  color: var(--text); line-height: 1;
+}
+
+.sb-count.warning { color: var(--amber); }
+.sb-count.empty   { color: var(--red); }
+
+/* Main grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Stats row */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+
+/* Start card */
+.start-card {
+  background: linear-gradient(135deg, var(--card) 0%, rgba(56,210,90,0.04) 100%);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
+  padding: 28px;
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative; overflow: hidden;
+}
+
+.start-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% -10%, rgba(56,210,90,0.1) 0%, transparent 60%);
+}
+
+.start-card * { position: relative; z-index: 1; }
+
+.start-card-title {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 800;
+  color: var(--text); margin-bottom: 8px;
+}
+
+.start-card-sub {
+  font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6;
+}
+
+/* History table */
+.history-table {
+  width: 100%; border-collapse: collapse;
+}
+
+.history-table th {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--text3); text-align: left;
+  padding: 0 8px 10px; border-bottom: 1px solid var(--border);
+}
+
+.history-table td {
+  padding: 10px 8px;
+  font-size: 12px; color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.history-table tr:last-child td { border-bottom: none; }
+
+.history-table .score-cell {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+  color: var(--accent);
+}
+
+.history-table .diff-pill {
+  font-family: var(--font-mono);
+  font-size: 8px; letter-spacing: 1px;
+  padding: 3px 7px; border-radius: 4px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border2);
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+/* Direction accuracy */
+.dir-acc-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.dir-acc-row:last-child { margin-bottom: 0; }
+.dir-acc-name {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1px;
+  color: var(--text2); min-width: 88px;
+}
+.dir-acc-pct {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  min-width: 36px; text-align: right;
+}
+
+/* Leaderboard */
+.lb-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank {
+  font-family: var(--font-mono);
+  font-size: 12px; font-weight: 700;
+  min-width: 24px; text-align: center;
+  color: var(--text3);
+}
+.lb-row:nth-child(1) .lb-rank { color: var(--gold); }
+.lb-row:nth-child(2) .lb-rank { color: var(--text); }
+.lb-row:nth-child(3) .lb-rank { color: var(--amber); }
+.lb-name {
+  flex: 1; font-size: 13px; color: var(--text);
+  font-weight: 500;
+}
+.lb-score {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 700;
+  color: var(--accent);
+}
+.lb-me { color: var(--accent) !important; }
+
+/* Empty states */
+.empty-state {
+  text-align: center; padding: 32px 16px;
+}
+.empty-state-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.5; }
+.empty-state-title { font-size: 14px; color: var(--text2); margin-bottom: 6px; }
+.empty-state-sub { font-size: 12px; color: var(--text3); }
+
+/* Chart */
+#perf-chart { width: 100%; display: block; }
+
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="bg-lines"></div>
+
+<div class="page-root">
+
+  <nav class="nav">
+    <a href="index.html" class="nav-brand">
+      <svg width="32" height="32" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+        <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-name">Shuttlestepz</span>
+    </a>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-link active">Dashboard</a>
+      <a href="trainer.html" class="nav-link">Trainer</a>
+      <span class="badge" id="plan-badge" style="margin:0 4px"></span>
+      <button onclick="AUTH.logout()" class="btn btn-ghost btn-sm">Log Out</button>
+    </div>
+  </nav>
+
+  <main id="dashboard">
+
+    <!-- Welcome bar -->
+    <div class="welcome-bar anim-fade-up">
+      <div class="welcome-left">
+        <div class="welcome-tag">PLAYER DASHBOARD</div>
+        <div class="welcome-name">Welcome back, <span id="user-name">—</span></div>
+        <div class="welcome-meta">
+          <span class="label-xs" id="user-email">—</span>
+          <span class="label-xs" style="color:var(--border2)">·</span>
+          <span class="label-xs">Member since <span id="member-since">—</span></span>
+        </div>
+      </div>
+      <a href="trainer.html" class="btn btn-primary" id="btn-start-training">▶ Start Training</a>
+    </div>
+
+    <!-- Upgrade banner (free users only) -->
+    <div class="upgrade-banner" id="upgrade-banner">
+      <div class="ub-left">
+        <div class="ub-icon">⭐</div>
+        <div>
+          <div class="ub-title">Upgrade to Premium</div>
+          <div class="ub-desc">Unlock unlimited sessions, advanced analytics, leaderboard access and Pro difficulty.</div>
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="handleUpgrade()">Upgrade — $7/mo</button>
+    </div>
+
+    <!-- Session limiter (free users) -->
+    <div class="session-bar" id="session-bar">
+      <div class="sb-info">
+        <div class="sb-label">SESSIONS REMAINING TODAY</div>
+        <div class="sb-count" id="sessions-left">—</div>
+      </div>
+      <div class="progress-wrap" style="flex:1;max-width:200px">
+        <div class="progress-fill" id="sessions-progress"></div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row anim-fade-up anim-delay-1">
+      <div class="stat-block">
+        <div class="stat-val accent" id="stat-score">—</div>
+        <div class="stat-lbl">Best Score</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-val" id="stat-acc">—</div>
+        <div class="stat-lbl">Best Accuracy</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-val" id="stat-streak">—</div>
+        <div class="stat-lbl">Best Streak</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-val" id="stat-sessions">0</div>
+        <div class="stat-lbl">Total Sessions</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+
+      <!-- LEFT col -->
+      <div>
+
+        <!-- Start card -->
+        <div class="start-card anim-fade-up anim-delay-2">
+          <div class="start-card-title">Ready to train?</div>
+          <div class="start-card-sub" id="start-card-sub">AI model loads in seconds. Stand in frame and go.</div>
+          <a href="trainer.html" class="btn btn-primary btn-lg" id="start-card-btn">▶ Launch AI Trainer</a>
+        </div>
+
+        <!-- Performance chart -->
+        <div class="card anim-fade-up anim-delay-2" style="margin-bottom:20px">
+          <div class="card-hd">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="1,11 4,7 7,9 10,4 13,6" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            SCORE HISTORY
+          </div>
+          <canvas id="perf-chart" height="100"></canvas>
+          <div class="empty-state" id="chart-empty" style="display:none">
+            <div class="empty-state-icon">📈</div>
+            <div class="empty-state-title">No data yet</div>
+            <div class="empty-state-sub">Complete a session to see your score trend.</div>
+          </div>
+        </div>
+
+        <!-- Session history -->
+        <div class="card anim-fade-up anim-delay-3">
+          <div class="card-hd">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke="var(--accent)" stroke-width="1.3"/><path d="M4 1v4M10 1v4M1 7h12" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round"/></svg>
+            RECENT SESSIONS
+          </div>
+          <div id="history-container">
+            <div class="empty-state" id="history-empty">
+              <div class="empty-state-icon">🎯</div>
+              <div class="empty-state-title">No sessions yet</div>
+              <div class="empty-state-sub">Your training history will appear here after your first session.</div>
+            </div>
+            <table class="history-table" id="history-table" style="display:none">
+              <thead>
+                <tr>
+                  <th>DATE</th>
+                  <th>SCORE</th>
+                  <th>ACCURACY</th>
+                  <th>ROUNDS</th>
+                  <th>REACTION</th>
+                  <th>DIFFICULTY</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT col -->
+      <div>
+
+        <!-- Direction accuracy -->
+        <div class="card anim-fade-up anim-delay-2" style="margin-bottom:16px">
+          <div class="card-hd">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="var(--accent)" stroke-width="1.3"/><circle cx="7" cy="7" r="2" fill="var(--accent)"/></svg>
+            DIRECTION ACCURACY
+          </div>
+          <div id="dir-accuracy">
+            <div class="empty-state">
+              <div class="empty-state-icon">🎯</div>
+              <div class="empty-state-sub">Train to see per-direction breakdown.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="card anim-fade-up anim-delay-3">
+          <div class="card-hd">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1 L8.5 5 L13 5 L9.5 8 L11 12 L7 9.5 L3 12 L4.5 8 L1 5 L5.5 5 Z" stroke="var(--accent)" stroke-width="1.3" fill="none"/></svg>
+            LEADERBOARD
+          </div>
+          <div id="leaderboard-container">
+            <div class="empty-state">
+              <div class="empty-state-sub">No entries yet.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  const user = AUTH.requireAuth()
+  if (!user) throw new Error('not authed')
+
+  const stats = AUTH.currentStats() || {}
+
+  // ── Populate header ───────────────────────────────────────────
+  document.getElementById('user-name').textContent  = user.username
+  document.getElementById('user-email').textContent = user.email
+  document.getElementById('member-since').textContent =
+    new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { month:'short', year:'numeric' })
+
+  // Plan badge
+  const planBadge = document.getElementById('plan-badge')
+  if (user.plan === 'premium') {
+    planBadge.textContent = '⭐ PREMIUM'
+    planBadge.className   = 'badge badge-premium'
+    document.getElementById('upgrade-banner').classList.add('hidden')
+    document.getElementById('session-bar').classList.add('hidden')
+  } else {
+    planBadge.textContent = 'FREE'
+    planBadge.className   = 'badge badge-free'
+  }
+
+  // ── Session bar ───────────────────────────────────────────────
+  if (user.plan === 'free') {
+    const remaining = AUTH.sessionsRemaining()
+    const el        = document.getElementById('sessions-left')
+    el.textContent  = remaining === 0 ? 'No sessions left today' : `${remaining} of 5`
+    el.className    = 'sb-count' + (remaining === 0 ? ' empty' : remaining <= 2 ? ' warning' : '')
+    document.getElementById('sessions-progress').style.width = (remaining / 5 * 100) + '%'
+    document.getElementById('sessions-progress').style.background =
+      remaining === 0 ? 'var(--red)' : remaining <= 2 ? 'var(--amber)' : 'var(--accent)'
+
+    if (remaining === 0) {
+      document.getElementById('start-card-btn').style.opacity = '0.5'
+      document.getElementById('start-card-btn').style.pointerEvents = 'none'
+      document.getElementById('start-card-sub').textContent = 'You have reached your 5 daily sessions. Upgrade to continue training today.'
+      document.getElementById('btn-start-training').style.opacity = '0.5'
+      document.getElementById('btn-start-training').style.pointerEvents = 'none'
+    }
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────
+  document.getElementById('stat-score').textContent    = stats.bestScore    || '—'
+  document.getElementById('stat-acc').textContent      = stats.bestAccuracy ? stats.bestAccuracy + '%' : '—'
+  document.getElementById('stat-streak').textContent   = stats.bestStreak   || '—'
+  document.getElementById('stat-sessions').textContent = stats.totalSessions || 0
+
+  // ── History table ─────────────────────────────────────────────
+  if (stats.history && stats.history.length > 0) {
+    document.getElementById('history-empty').style.display = 'none'
+    const table = document.getElementById('history-table')
+    table.style.display = 'table'
+    const body = document.getElementById('history-body')
+    const diffColors = { easy:'#2ea84c', medium:'var(--accent)', hard:'var(--amber)', pro:'var(--red)' }
+
+    stats.history.forEach(s => {
+      const row = document.createElement('tr')
+      const date = new Date(s.date).toLocaleDateString('en-US', { month:'short', day:'numeric' })
+      row.innerHTML = `
+        <td>${date}</td>
+        <td class="score-cell">${s.score}</td>
+        <td>${s.accuracy}%</td>
+        <td>${s.rounds}</td>
+        <td>${s.reaction ? (s.reaction/1000).toFixed(2) + 's' : '—'}</td>
+        <td><span class="diff-pill" style="color:${diffColors[s.difficulty]||'var(--accent)'};border-color:${diffColors[s.difficulty]||'var(--border2)'}">${s.difficulty||'medium'}</span></td>
+      `
+      body.appendChild(row)
+    })
+  }
+
+  // ── Performance chart ─────────────────────────────────────────
+  const chartCanvas = document.getElementById('perf-chart')
+  const history     = stats.history || []
+
+  if (history.length < 2) {
+    chartCanvas.style.display = 'none'
+    document.getElementById('chart-empty').style.display = 'block'
+  } else {
+    drawChart(chartCanvas, history.map(s => s.score).reverse())
+  }
+
+  function drawChart(canvas, data) {
+    canvas.width  = canvas.parentElement.clientWidth - 48 || 540
+    canvas.height = 100
+    const c    = canvas.getContext('2d')
+    const w    = canvas.width
+    const h    = canvas.height
+    const maxV = Math.max(...data) * 1.12 || 1
+    const pad  = 18
+
+    c.clearRect(0, 0, w, h)
+
+    // Gridlines
+    c.strokeStyle = 'rgba(56,210,90,0.06)'
+    c.lineWidth   = 1
+    for (let i = 0; i <= 3; i++) {
+      const y = pad + (i / 3) * (h - pad * 2)
+      c.beginPath(); c.moveTo(pad, y); c.lineTo(w - pad, y); c.stroke()
+    }
+
+    const pts = data.map((v, i) => ({
+      x: pad + (i / (data.length - 1)) * (w - pad * 2),
+      y: h - pad - (v / maxV) * (h - pad * 2),
+    }))
+
+    // Area
+    const grad = c.createLinearGradient(0, 0, 0, h)
+    grad.addColorStop(0, 'rgba(56,210,90,0.2)')
+    grad.addColorStop(1, 'rgba(56,210,90,0)')
+    c.beginPath()
+    c.moveTo(pts[0].x, h)
+    pts.forEach(p => c.lineTo(p.x, p.y))
+    c.lineTo(pts[pts.length-1].x, h)
+    c.closePath()
+    c.fillStyle = grad
+    c.fill()
+
+    // Line
+    c.beginPath()
+    c.strokeStyle = 'rgba(56,210,90,0.85)'
+    c.lineWidth   = 2
+    pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y))
+    c.stroke()
+
+    // Dots
+    pts.forEach((p, i) => {
+      c.beginPath()
+      c.arc(p.x, p.y, i === pts.length-1 ? 5 : 3, 0, Math.PI * 2)
+      c.fillStyle = i === pts.length-1 ? 'var(--accent)' : 'rgba(56,210,90,0.5)'
+      c.fill()
+      // Labels
+      c.fillStyle = 'rgba(56,210,90,0.5)'
+      c.font = "9px 'DM Mono', monospace"
+      c.textAlign = 'center'
+      c.fillText(data[i], p.x, p.y - 8)
+    })
+  }
+
+  // ── Direction accuracy ────────────────────────────────────────
+  const dirStats = stats.dirStats || {}
+  const dirs = Object.entries(dirStats).filter(([, s]) => s.total > 0)
+  if (dirs.length > 0) {
+    const container = document.getElementById('dir-accuracy')
+    container.innerHTML = ''
+    dirs.sort((a, b) => (b[1].hit/b[1].total) - (a[1].hit/a[1].total)).forEach(([dir, s]) => {
+      const pct   = Math.round((s.hit / s.total) * 100)
+      const color = pct >= 80 ? 'var(--accent)' : pct >= 50 ? 'var(--amber)' : 'var(--red)'
+      container.innerHTML += `
+        <div class="dir-acc-row">
+          <div class="dir-acc-name">${dir}</div>
+          <div class="progress-wrap" style="flex:1">
+            <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+          <div class="dir-acc-pct" style="color:${color}">${pct}%</div>
+        </div>`
+    })
+  }
+
+  // ── Leaderboard ───────────────────────────────────────────────
+  const board = AUTH.getLeaderboard()
+  const lbContainer = document.getElementById('leaderboard-container')
+  if (board.length > 0) {
+    lbContainer.innerHTML = board.slice(0, 10).map((entry, i) => `
+      <div class="lb-row">
+        <div class="lb-rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</div>
+        <div class="lb-name ${entry.username === user.username ? 'lb-me' : ''}">
+          ${entry.username}
+          ${entry.plan === 'premium' ? '<span style="color:var(--gold);font-size:10px">⭐</span>' : ''}
+          ${entry.username === user.username ? '<span style="font-size:9px;color:var(--text3)"> (you)</span>' : ''}
+        </div>
+        <div class="lb-score">${entry.score}</div>
+      </div>`).join('')
+  }
+
+  // ── Upgrade handler ───────────────────────────────────────────
+  function handleUpgrade() {
+    if (confirm('Simulate upgrade to Premium? (Demo mode — no payment required)')) {
+      AUTH.upgradePlan(user.email)
+      window.location.reload()
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shuttlestepz — AI Badminton Trainer</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Landing page specific ── */
+#landing { max-width: 1120px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* Hero */
+.hero {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+  padding: 80px 0 60px;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2.5px;
+  color: var(--accent);
+  border: 1px solid var(--border2);
+  padding: 5px 12px; border-radius: 20px;
+  margin-bottom: 20px;
+  background: var(--accent-dim);
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 1.6s ease infinite;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(46px, 6vw, 78px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -1px;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.hero-title .accent-line { color: var(--accent); display: block; }
+
+.hero-body {
+  font-size: 16px;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 480px;
+  margin-bottom: 32px;
+}
+
+.hero-cta {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+}
+
+.hero-note {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--text3);
+  margin-top: 14px;
+}
+
+/* Hero visual */
+.hero-visual {
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.court-diagram {
+  width: 100%; max-width: 420px;
+  aspect-ratio: 3/4;
+  border: 2px solid var(--border2);
+  border-radius: var(--r-xl);
+  position: relative;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.court-diagram::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(56,210,90,0.07) 0%, transparent 70%);
+}
+
+.court-lines {
+  position: absolute; inset: 12%;
+  border: 1px solid rgba(56,210,90,0.25);
+  border-radius: 4px;
+}
+
+.court-net {
+  position: absolute; left: 12%; right: 12%;
+  top: 50%; height: 2px;
+  background: rgba(56,210,90,0.4);
+}
+
+.court-zone {
+  position: absolute;
+  width: 28%; height: 20%;
+  border: 1px dashed rgba(56,210,90,0.2);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 7px; letter-spacing: 1px;
+  color: var(--text3);
+  transition: all 0.5s;
+}
+
+.court-zone.lit {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  box-shadow: 0 0 20px rgba(56,210,90,0.15);
+}
+
+.zone-tl { top: 14%; left: 14%; }
+.zone-tm { top: 14%; left: 50%; transform: translateX(-50%); }
+.zone-tr { top: 14%; right: 14%; }
+.zone-bl { bottom: 14%; left: 14%; }
+.zone-bm { bottom: 14%; left: 50%; transform: translateX(-50%); }
+.zone-br { bottom: 14%; right: 14%; }
+.zone-ml { top: 50%; left: 14%; transform: translateY(-50%); }
+.zone-mr { top: 50%; right: 14%; transform: translateY(-50%); }
+
+.player-dot {
+  position: absolute;
+  bottom: 32%; left: 50%; transform: translateX(-50%);
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(56,210,90,0.3);
+  animation: playerPulse 2s ease infinite;
+}
+
+@keyframes playerPulse {
+  0%,100% { box-shadow: 0 0 12px var(--accent), 0 0 30px rgba(56,210,90,0.3); }
+  50%      { box-shadow: 0 0 24px var(--accent), 0 0 60px rgba(56,210,90,0.5); }
+}
+
+.court-label {
+  position: absolute;
+  top: 50%; right: -80px;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--accent);
+  writing-mode: vertical-lr;
+  border: 1px solid var(--border2);
+  padding: 8px 4px;
+  border-radius: 4px;
+  background: var(--accent-dim);
+}
+
+/* Features */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 3px;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 80px;
+}
+
+.feat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 28px 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.feat-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+
+.feat-icon {
+  width: 44px; height: 44px;
+  border-radius: var(--r-md);
+  background: var(--accent-dim);
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+
+.feat-title {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.feat-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* Pricing */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto 80px;
+}
+
+.plan-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 32px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.plan-card.premium {
+  border-color: var(--border2);
+  background: linear-gradient(135deg, var(--card) 0%, rgba(56,210,90,0.04) 100%);
+}
+
+.plan-card.premium::before {
+  content: 'MOST POPULAR';
+  position: absolute; top: -1px; right: 24px;
+  background: var(--accent);
+  color: #050908;
+  font-family: var(--font-mono);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+}
+
+.plan-name {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2.5px;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.plan-price {
+  font-family: var(--font-display);
+  font-size: 44px; font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.plan-price sup { font-size: 20px; vertical-align: super; }
+.plan-period { font-family: var(--font-mono); font-size: 11px; color: var(--text3); margin-bottom: 24px; }
+
+.plan-features { list-style: none; margin-bottom: 28px; }
+.plan-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text2);
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.plan-features li:last-child { border-bottom: none; }
+.plan-features li::before {
+  content: '✓';
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.plan-features li.dimmed { color: var(--text3); }
+.plan-features li.dimmed::before { content: '—'; color: var(--text4); }
+
+/* CTA section */
+.cta-section {
+  text-align: center;
+  padding: 60px 40px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  margin-bottom: 60px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(56,210,90,0.08) 0%, transparent 60%);
+}
+
+.cta-section * { position: relative; z-index: 1; }
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 1.5px;
+  color: var(--text3);
+}
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; }
+  .hero-visual { display: none; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .features-grid { grid-template-columns: 1fr; }
+  footer { flex-direction: column; gap: 8px; text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="bg-radial"></div>
+<div class="bg-lines"></div>
+
+<div class="page-root">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="index.html" class="nav-brand">
+      <svg class="nav-logo" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+        <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-name">Shuttlestepz</span>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#pricing" class="nav-link">Pricing</a>
+      <a href="login.html" class="nav-link btn btn-ghost btn-sm" style="margin-left:4px">Log In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Get Started</a>
+    </div>
+  </nav>
+
+  <!-- LANDING -->
+  <main id="landing">
+
+    <!-- Hero -->
+    <section class="hero anim-fade-up">
+      <div>
+        <div class="hero-eyebrow">AI-Powered Badminton Training</div>
+        <h1 class="hero-title">
+          Train Like a<br>
+          <span class="accent-line">Champion.</span>
+        </h1>
+        <p class="hero-body">
+          Real-time AI pose detection tracks your footwork, scores your reactions,
+          and coaches you to move faster — all from your laptop or phone camera.
+          No court required.
+        </p>
+        <div class="hero-cta">
+          <a href="signup.html" class="btn btn-primary btn-lg">▶ Start Free Training</a>
+          <a href="login.html" class="btn btn-secondary">Already have account</a>
+        </div>
+        <p class="hero-note">100% offline AI · No equipment needed · Free to start</p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="court-diagram" id="courtDiagram">
+          <div class="court-lines"></div>
+          <div class="court-net"></div>
+          <div class="court-zone zone-tl" id="z-tl">BACK LEFT</div>
+          <div class="court-zone zone-tm" id="z-tm">BACK</div>
+          <div class="court-zone zone-tr" id="z-tr">BACK RIGHT</div>
+          <div class="court-zone zone-ml" id="z-ml">LEFT</div>
+          <div class="court-zone zone-mr" id="z-mr">RIGHT</div>
+          <div class="court-zone zone-bl" id="z-bl">L CORNER</div>
+          <div class="court-zone zone-bm" id="z-bm">FRONT</div>
+          <div class="court-zone zone-br" id="z-br">R CORNER</div>
+          <div class="player-dot"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" style="margin-bottom:64px;">
+      <p class="section-label anim-fade-up">What you get</p>
+      <h2 class="display-md anim-fade-up anim-delay-1" style="margin-bottom:32px;max-width:500px">
+        Everything you need to dominate the court
+      </h2>
+      <div class="features-grid">
+        <div class="feat-card anim-fade-up anim-delay-1">
+          <div class="feat-icon">🤖</div>
+          <div class="feat-title">AI Pose Detection</div>
+          <div class="feat-desc">MoveNet tracks your hips and ankles in real-time to score every movement with pixel-level accuracy.</div>
+        </div>
+        <div class="feat-card anim-fade-up anim-delay-2">
+          <div class="feat-icon">⚡</div>
+          <div class="feat-title">Reaction Timing</div>
+          <div class="feat-desc">Millisecond-precise reaction measurement. See how fast you respond and track improvements over time.</div>
+        </div>
+        <div class="feat-card anim-fade-up anim-delay-3">
+          <div class="feat-icon">🎯</div>
+          <div class="feat-title">8-Zone Training</div>
+          <div class="feat-desc">Full court coverage: Front, Back, Left, Right, and all four corners. Customise zones per session.</div>
+        </div>
+        <div class="feat-card anim-fade-up anim-delay-1">
+          <div class="feat-icon">📊</div>
+          <div class="feat-title">Performance Analytics</div>
+          <div class="feat-desc">Track accuracy per direction, score history, best streaks, and reaction time trends over every session.</div>
+        </div>
+        <div class="feat-card anim-fade-up anim-delay-2">
+          <div class="feat-icon">🎙️</div>
+          <div class="feat-title">Voice Coaching</div>
+          <div class="feat-desc">Real-time voice calls and feedback so you can keep your eyes forward — just like a real coach.</div>
+        </div>
+        <div class="feat-card anim-fade-up anim-delay-3">
+          <div class="feat-icon">🏆</div>
+          <div class="feat-title">Leaderboard</div>
+          <div class="feat-desc">Compete with other players globally. See how your scores, accuracy and reaction stack up.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="pricing" style="margin-bottom:64px;">
+      <p class="section-label text-center anim-fade-up">Simple pricing</p>
+      <h2 class="display-md text-center anim-fade-up anim-delay-1" style="margin-bottom:40px">
+        Start free. Go premium when ready.
+      </h2>
+      <div class="pricing-grid">
+        <div class="plan-card anim-fade-up anim-delay-1">
+          <div class="plan-name">Free</div>
+          <div class="plan-price"><sup>$</sup>0</div>
+          <div class="plan-period">forever</div>
+          <ul class="plan-features">
+            <li>AI pose tracking</li>
+            <li>5 sessions per day</li>
+            <li>Basic score system</li>
+            <li>3 difficulty levels</li>
+            <li class="dimmed">Unlimited sessions</li>
+            <li class="dimmed">Advanced analytics</li>
+            <li class="dimmed">Leaderboard</li>
+            <li class="dimmed">Progress history</li>
+          </ul>
+          <a href="signup.html" class="btn btn-secondary btn-full">Start Free</a>
+        </div>
+        <div class="plan-card premium anim-fade-up anim-delay-2">
+          <div class="plan-name">Premium</div>
+          <div class="plan-price"><sup>$</sup>7</div>
+          <div class="plan-period">per month</div>
+          <ul class="plan-features">
+            <li>Everything in Free</li>
+            <li>Unlimited sessions</li>
+            <li>All 4 difficulty levels</li>
+            <li>Advanced analytics</li>
+            <li>Direction breakdown</li>
+            <li>Leaderboard access</li>
+            <li>Progress history (20 sessions)</li>
+            <li>Priority support</li>
+          </ul>
+          <a href="signup.html" class="btn btn-primary btn-full">Get Premium</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta-section anim-fade-up">
+      <div class="badge badge-live" style="margin-bottom:20px;display:inline-flex">AI Ready</div>
+      <h2 class="display-md" style="margin-bottom:12px">Ready to train smarter?</h2>
+      <p style="color:var(--text2);font-size:15px;margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.7">
+        Join players improving their footwork speed and court coverage with AI-guided training.
+      </p>
+      <a href="signup.html" class="btn btn-primary btn-lg">Create Free Account →</a>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <span>© 2025 Shuttlestepz · AI Badminton Trainer</span>
+      <span>100% client-side · Your data never leaves your device</span>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+  // Animate court zones
+  const zones = ['z-tl','z-tm','z-tr','z-ml','z-mr','z-bl','z-bm','z-br']
+  let current = 0
+  function animateCourt() {
+    document.querySelectorAll('.court-zone').forEach(z => z.classList.remove('lit'))
+    const el = document.getElementById(zones[current])
+    if (el) el.classList.add('lit')
+    current = (current + 1) % zones.length
+  }
+  setInterval(animateCourt, 900)
+  animateCourt()
+
+  // Check if logged in — show dashboard link
+  try {
+    const session = JSON.parse(localStorage.getItem('ssz_session'))
+    if (session) {
+      const links = document.getElementById('nav-links')
+      links.innerHTML = `
+        <a href="dashboard.html" class="nav-link active">Dashboard</a>
+        <a href="trainer.html" class="btn btn-primary btn-sm">▶ Train Now</a>
+      `
+    }
+  } catch {}
+</script>
+</body>
+</html>

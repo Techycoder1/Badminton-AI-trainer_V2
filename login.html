@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — Shuttlestepz</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.auth-root {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.auth-panel {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 40px;
+  min-height: 100vh;
+  position: relative; z-index: 1;
+}
+
+.auth-box {
+  width: 100%; max-width: 400px;
+}
+
+.auth-brand {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+  margin-bottom: 40px;
+}
+
+.auth-brand-name {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 32px; font-weight: 800;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--text2);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+/* Decorative side */
+.auth-deco {
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-deco::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(56,210,90,0.1) 0%, transparent 65%);
+}
+
+.deco-content { position: relative; z-index: 1; max-width: 380px; }
+
+.deco-title {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 800;
+  line-height: 1.05;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.deco-title .g { color: var(--accent); }
+
+.deco-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 32px;
+}
+
+.deco-stat {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  text-align: center;
+}
+
+.deco-stat-val {
+  font-family: var(--font-display);
+  font-size: 28px; font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.deco-stat-lbl {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+.deco-features { list-style: none; }
+.deco-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text2);
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.deco-features li:last-child { border-bottom: none; }
+.deco-features li span {
+  width: 22px; height: 22px;
+  background: var(--accent-dim);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Error banner */
+#error-banner { display: none; }
+#error-banner.show { display: flex; }
+
+@media (max-width: 768px) {
+  .auth-root { grid-template-columns: 1fr; }
+  .auth-deco { display: none; }
+  .auth-panel { padding: 40px 24px; }
+}
+</style>
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="bg-radial"></div>
+
+<div class="auth-root">
+
+  <!-- Form Side -->
+  <div class="auth-panel">
+    <div class="auth-box">
+
+      <a href="index.html" class="auth-brand">
+        <svg width="32" height="32" viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+          <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+          <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="auth-brand-name">Shuttlestepz</span>
+      </a>
+
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Log in to your account to continue training.</p>
+
+      <div class="alert alert-error" id="error-banner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--red)" stroke-width="1.5"/><path d="M8 5v3.5M8 11v.5" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span id="error-msg">Invalid credentials.</span>
+      </div>
+
+      <form id="login-form" onsubmit="return false">
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-input" type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;padding:15px" id="btn-login">
+          Log In →
+        </button>
+      </form>
+
+      <div class="divider-text" style="margin:28px 0">OR</div>
+
+      <!-- Demo account hint -->
+      <div class="alert alert-info">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="var(--blue)" stroke-width="1.5"/><path d="M8 7v5M8 5v.5" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <div>
+          <strong>New here?</strong><br>
+          <a href="signup.html" style="color:var(--blue);text-decoration:none">Create a free account</a> to get started.
+        </div>
+      </div>
+
+      <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--text3)">
+        Don't have an account?
+        <a href="signup.html" style="color:var(--accent);text-decoration:none;margin-left:4px">Sign Up Free</a>
+      </p>
+
+    </div>
+  </div>
+
+  <!-- Deco Side -->
+  <div class="auth-deco">
+    <div class="deco-content">
+      <div class="badge badge-live" style="margin-bottom:20px">AI Trainer Active</div>
+      <h2 class="deco-title">Train smarter,<br>move <span class="g">faster.</span></h2>
+      <div class="deco-stats">
+        <div class="deco-stat">
+          <div class="deco-stat-val">8</div>
+          <div class="deco-stat-lbl">Court Zones</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">60fps</div>
+          <div class="deco-stat-lbl">AI Tracking</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">±50ms</div>
+          <div class="deco-stat-lbl">Reaction Precision</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">100%</div>
+          <div class="deco-stat-lbl">Offline Ready</div>
+        </div>
+      </div>
+      <ul class="deco-features">
+        <li><span>🤖</span>Real-time pose detection</li>
+        <li><span>⚡</span>Reaction time measurement</li>
+        <li><span>📊</span>Session performance analytics</li>
+        <li><span>🏆</span>Leaderboard &amp; history</li>
+        <li><span>🎙️</span>Voice coaching feedback</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script src="auth.js"></script>
+<script>
+  AUTH.requireGuest()
+
+  document.getElementById('login-form').addEventListener('submit', () => {
+    const email    = document.getElementById('email').value.trim()
+    const password = document.getElementById('password').value
+    const btn      = document.getElementById('btn-login')
+    const banner   = document.getElementById('error-banner')
+    const errMsg   = document.getElementById('error-msg')
+
+    btn.textContent = 'Logging in…'
+    btn.disabled    = true
+    banner.classList.remove('show')
+
+    setTimeout(() => {
+      const result = AUTH.login(email, password)
+      if (result.ok) {
+        window.location.href = 'dashboard.html'
+      } else {
+        errMsg.textContent = result.msg
+        banner.classList.add('show')
+        btn.textContent = 'Log In →'
+        btn.disabled    = false
+      }
+    }, 400)
+  })
+</script>
+</body>
+</html>
