@@ -1,21 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Trainer</title>
+  <meta charset="UTF-8" />
+  <title>Shuttlestepz Trainer</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/trainer.css" />
 </head>
 
 <body>
 
-    <!-- 🎮 GAME UI -->
-    <div id="signal">⬆️</div>
-    <div id="result"></div>
-    <div id="score">Score: 0</div>
+<div class="trainer-page">
 
-    <!-- JS always at bottom -->
-    
-</body>
+  <!-- 🔝 TOP BAR -->
+  <div class="session-bar">
+    <div class="session-bar__brand">Shuttle<em>Stepz</em></div>
 
+    <div class="session-bar__stats">
+      <div class="chip">
+        <div class="chip__label">Score</div>
+        <div id="score" class="chip__value chip__value--brand">0</div>
+      </div>
+
+      <div class="chip">
+        <div class="chip__label">Accuracy</div>
+        <div id="accuracy" class="chip__value">0%</div>
+      </div>
+
+      <div class="chip">
+        <div class="chip__label">Avg</div>
+        <div id="avg" class="chip__value">0 ms</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧠 MAIN GRID -->
+  <div class="trainer-main">
+
+    <!-- LEFT PANEL -->
+    <div class="panel-left">
+      <div class="panel-section">
+        <div class="panel-section__title">Controls</div>
+        <button class="btn btn--primary" onclick="startGame()">Start</button>
+      </div>
+    </div>
+
+    <!-- 🎯 CENTER GAME -->
+    <div class="panel-center" id="gameArea">
+
+      <div class="direction-display">
+        <div id="signal" class="direction-display__text state-idle">
+          READY
+        </div>
+
+        <div id="reaction" class="reaction-display"></div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel-right">
+      <div class="panel-section">
+        <div class="panel-section__title">Session</div>
+        <div id="rounds">Rounds: 0</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- JS -->
 <script src="js/trainer.js"></script>
 
+</body>
 </html>
