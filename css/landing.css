@@ -1,0 +1,96 @@
+/* NAVBAR */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background: #0a0a0a;
+}
+
+.logo {
+    color: #39ff14;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.nav-links a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: white;
+    transition: 0.3s;
+}
+
+.nav-links a:hover {
+    color: #00f7ff;
+}
+
+/* HERO */
+.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 60px 40px;
+}
+
+.hero-content h1 {
+    font-size: 48px;
+    color: #39ff14;
+}
+
+.hero-content p {
+    margin: 20px 0;
+    color: #ccc;
+}
+
+.hero-image img {
+    width: 400px;
+    border-radius: 10px;
+}
+
+/* BUTTON */
+.cta-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    background: #00f7ff;
+    color: black;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.cta-btn:hover {
+    background: #ff00ff;
+    color: white;
+    box-shadow: 0 0 15px #ff00ff;
+}
+
+/* FEATURES */
+.features {
+    display: flex;
+    justify-content: space-around;
+    padding: 50px;
+}
+
+.feature-card {
+    background: #111;
+    padding: 20px;
+    border-radius: 10px;
+    width: 250px;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.feature-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px #00f7ff;
+}
+
+/* CTA */
+.cta {
+    text-align: center;
+    padding: 50px;
+}
+
+.cta h2 {
+    margin-bottom: 20px;
+}
