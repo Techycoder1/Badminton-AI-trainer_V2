@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — Shuttlestepz</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ── Layout ────────────────────────────────────────────────── */
+.auth-root {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative; z-index: 1;
+}
+
+/* ── Form panel ─────────────────────────────────────────────── */
+.auth-panel {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 40px;
+  min-height: 100vh;
+  background: rgba(5,9,8,0.6);
+}
+
+.auth-box { width: 100%; max-width: 400px; }
+
+/* ── Brand ──────────────────────────────────────────────────── */
+.auth-brand {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none; margin-bottom: 44px;
+}
+.auth-brand-name {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 800;
+  letter-spacing: 1px; color: var(--accent);
+}
+
+/* ── Headings ───────────────────────────────────────────────── */
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 34px; font-weight: 800;
+  color: var(--text); margin-bottom: 6px; line-height: 1.1;
+}
+.auth-subtitle {
+  font-size: 14px; color: var(--text2);
+  margin-bottom: 32px; line-height: 1.6;
+}
+
+/* ── Error / success banners ────────────────────────────────── */
+.banner {
+  display: none; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: var(--r-md);
+  font-size: 13px; line-height: 1.5; margin-bottom: 20px;
+}
+.banner.show { display: flex; }
+.banner-error {
+  background: var(--red-dim);
+  border: 1px solid rgba(224,72,72,0.25);
+  color: #f08080;
+}
+.banner-success {
+  background: var(--accent-dim);
+  border: 1px solid var(--border2);
+  color: var(--accent);
+}
+.banner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Divider ────────────────────────────────────────────────── */
+.divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 24px 0; color: var(--text3);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px;
+}
+.divider::before,.divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: var(--border);
+}
+
+/* ── Forgot password link ───────────────────────────────────── */
+.forgot-link {
+  display: block; text-align: right;
+  font-size: 12px; color: var(--text3);
+  text-decoration: none; margin-top: -8px; margin-bottom: 20px;
+  transition: color .15s;
+}
+.forgot-link:hover { color: var(--accent); }
+
+/* ── Bottom note ────────────────────────────────────────────── */
+.auth-footer {
+  text-align: center; margin-top: 28px;
+  font-size: 12px; color: var(--text3); line-height: 1.8;
+}
+.auth-footer a {
+  color: var(--accent); text-decoration: none; font-weight: 600;
+}
+.auth-footer a:hover { text-decoration: underline; }
+
+/* ── Decorative right panel ─────────────────────────────────── */
+.auth-deco {
+  background: rgba(14,22,16,0.85);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 60px 48px;
+  position: relative; overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+.auth-deco::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(56,210,90,0.09) 0%, transparent 65%);
+  pointer-events: none;
+}
+.deco-inner { position: relative; z-index: 1; max-width: 380px; width: 100%; }
+
+.deco-eyebrow {
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 3px; color: var(--accent);
+  text-transform: uppercase; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.deco-eyebrow::before {
+  content: ''; width: 24px; height: 1px; background: var(--accent);
+}
+
+.deco-title {
+  font-family: var(--font-display);
+  font-size: 38px; font-weight: 800;
+  line-height: 1.05; color: var(--text); margin-bottom: 28px;
+}
+.deco-title .g { color: var(--accent); }
+
+/* ── Stat grid ──────────────────────────────────────────────── */
+.deco-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 28px;
+}
+.deco-stat {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px; text-align: center;
+  transition: border-color .2s;
+}
+.deco-stat:hover { border-color: var(--border2); }
+.deco-stat-val {
+  font-family: var(--font-display);
+  font-size: 26px; font-weight: 800;
+  color: var(--accent); line-height: 1;
+}
+.deco-stat-lbl {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 2px;
+  color: var(--text3); margin-top: 5px;
+}
+
+/* ── Feature list ───────────────────────────────────────────── */
+.deco-features { list-style: none; }
+.deco-features li {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: var(--text2);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.deco-features li:last-child { border-bottom: none; }
+.deco-features .fi {
+  width: 28px; height: 28px; flex-shrink: 0;
+  background: var(--accent-dim);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  display: flex; align-items: center;
+  justify-content: center; font-size: 13px;
+}
+
+/* ── Loading spinner on button ──────────────────────────────── */
+.btn-spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: #000;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  margin-right: 8px; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Forgot modal ───────────────────────────────────────────── */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 100;
+  align-items: center; justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-xl);
+  padding: 32px; width: 100%; max-width: 380px;
+  position: relative;
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 20px; font-weight: 800;
+  color: var(--text); margin-bottom: 8px;
+}
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; color: var(--text3);
+  font-size: 20px; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--text); }
+
+@media (max-width: 768px) {
+  .auth-root { grid-template-columns: 1fr; }
+  .auth-deco { display: none; }
+  .auth-panel { padding: 36px 24px; }
+}
+</style>
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="bg-radial"></div>
+<div class="bg-lines"></div>
+
+<div class="auth-root">
+
+  <!-- ═══ FORM PANEL ═══ -->
+  <div class="auth-panel">
+    <div class="auth-box">
+
+      <!-- Brand -->
+      <a href="index.html" class="auth-brand">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+          <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+          <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="auth-brand-name">Shuttlestepz</span>
+      </a>
+
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Log in to continue your training journey.</p>
+
+      <!-- Error banner -->
+      <div class="banner banner-error" id="error-banner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-top:1px">
+          <circle cx="8" cy="8" r="7" stroke="#e04848" stroke-width="1.5"/>
+          <path d="M8 5v3.5M8 11v.5" stroke="#e04848" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="error-msg">Invalid credentials.</span>
+      </div>
+
+      <!-- Success banner (password reset) -->
+      <div class="banner banner-success" id="success-banner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-top:1px">
+          <circle cx="8" cy="8" r="7" stroke="var(--accent)" stroke-width="1.5"/>
+          <path d="M5 8l2 2 4-4" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="success-msg">Reset email sent! Check your inbox.</span>
+      </div>
+
+      <!-- Form -->
+      <form id="login-form" onsubmit="return false" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-input" type="email" id="email"
+            placeholder="you@example.com"
+            autocomplete="email" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div style="position:relative">
+            <input class="form-input" type="password" id="password"
+              placeholder="••••••••"
+              autocomplete="current-password" required
+              style="padding-right:44px">
+            <button type="button" id="toggle-pw"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                     background:none;border:none;color:var(--text3);cursor:pointer;
+                     font-size:16px;line-height:1;padding:4px"
+              title="Show/hide password">👁</button>
+          </div>
+        </div>
+
+        <a href="#" class="forgot-link" id="forgot-link">Forgot password?</a>
+
+        <button type="submit" class="btn btn-primary btn-full"
+          style="padding:15px;font-size:15px" id="btn-login">
+          Log In →
+        </button>
+      </form>
+
+      <div class="divider">OR</div>
+
+      <div class="auth-footer">
+        Don't have an account?
+        <a href="signup.html">Sign up free</a>
+        <br>
+        <span style="color:var(--text4);font-size:11px;margin-top:6px;display:block">
+          Your data is private and stored securely with Firebase.
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ DECO PANEL ═══ -->
+  <div class="auth-deco">
+    <div class="deco-inner">
+
+      <div class="deco-eyebrow">AI Trainer Active</div>
+
+      <h2 class="deco-title">
+        Train smarter,<br>move <span class="g">faster.</span>
+      </h2>
+
+      <div class="deco-stats">
+        <div class="deco-stat">
+          <div class="deco-stat-val">8</div>
+          <div class="deco-stat-lbl">Court Zones</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">60fps</div>
+          <div class="deco-stat-lbl">AI Tracking</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">±50ms</div>
+          <div class="deco-stat-lbl">Reaction Precision</div>
+        </div>
+        <div class="deco-stat">
+          <div class="deco-stat-val">8</div>
+          <div class="deco-stat-lbl">Skill Levels</div>
+        </div>
+      </div>
+
+      <ul class="deco-features">
+        <li><span class="fi">🤖</span>Real-time AI pose detection</li>
+        <li><span class="fi">⚡</span>Reaction time measurement</li>
+        <li><span class="fi">📊</span>Session performance analytics</li>
+        <li><span class="fi">🏆</span>XP levels &amp; leaderboard</li>
+        <li><span class="fi">🎙️</span>Voice coaching feedback</li>
+      </ul>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ FORGOT PASSWORD MODAL ═══ -->
+<div class="modal-backdrop" id="forgot-modal">
+  <div class="modal">
+    <button class="modal-close" id="close-modal">✕</button>
+    <h2 class="modal-title">Reset Password</h2>
+    <p class="modal-sub">Enter your email and we'll send you a reset link.</p>
+
+    <div class="banner banner-error" id="reset-error" style="margin-bottom:16px">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="7" stroke="#e04848" stroke-width="1.5"/>
+        <path d="M8 5v3.5M8 11v.5" stroke="#e04848" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span id="reset-error-msg"></span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="reset-email">Email Address</label>
+      <input class="form-input" type="email" id="reset-email" placeholder="you@example.com">
+    </div>
+
+    <button class="btn btn-primary btn-full" style="padding:13px" id="btn-reset">
+      Send Reset Link
+    </button>
+  </div>
+</div>
+
+<!-- Firebase + Auth -->
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/auth.js"></script>
+
+<script>
+window.addEventListener('load', async () => {
+
+  // ── Redirect if already logged in ──────────────────────────
+  // Small wait for firebase module to initialise
+  await new Promise(r => setTimeout(r, 300))
+  if (window.AUTH) AUTH.requireGuest()
+
+  // ── Toggle password visibility ────────────────────────────
+  const pwInput  = document.getElementById('password')
+  const togglePw = document.getElementById('toggle-pw')
+  togglePw.onclick = () => {
+    const isText = pwInput.type === 'text'
+    pwInput.type   = isText ? 'password' : 'text'
+    togglePw.textContent = isText ? '👁' : '🙈'
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function showError(msg) {
+    document.getElementById('error-msg').textContent = msg
+    document.getElementById('error-banner').classList.add('show')
+    document.getElementById('success-banner').classList.remove('show')
+  }
+  function showSuccess(msg) {
+    document.getElementById('success-msg').textContent = msg
+    document.getElementById('success-banner').classList.add('show')
+    document.getElementById('error-banner').classList.remove('show')
+  }
+  function clearBanners() {
+    document.getElementById('error-banner').classList.remove('show')
+    document.getElementById('success-banner').classList.remove('show')
+  }
+  function setLoading(loading) {
+    const btn = document.getElementById('btn-login')
+    btn.disabled = loading
+    btn.innerHTML = loading
+      ? '<span class="btn-spinner"></span>Logging in…'
+      : 'Log In →'
+  }
+
+  // ── Login form ────────────────────────────────────────────
+  document.getElementById('login-form').addEventListener('submit', async () => {
+    const email    = document.getElementById('email').value.trim()
+    const password = document.getElementById('password').value
+
+    if (!email || !password) { showError('Please fill in all fields.'); return }
+
+    clearBanners()
+    setLoading(true)
+
+    const result = await AUTH.login(email, password)
+
+    if (result.ok) {
+      window.location.href = 'dashboard.html'
+    } else {
+      showError(result.msg)
+      setLoading(false)
+    }
+  })
+
+  // ── Forgot password modal ─────────────────────────────────
+  const modal      = document.getElementById('forgot-modal')
+  const resetError = document.getElementById('reset-error')
+
+  document.getElementById('forgot-link').onclick = (e) => {
+    e.preventDefault()
+    // Pre-fill email if already typed
+    const email = document.getElementById('email').value.trim()
+    if (email) document.getElementById('reset-email').value = email
+    modal.classList.add('open')
+  }
+
+  document.getElementById('close-modal').onclick = () => {
+    modal.classList.remove('open')
+    resetError.classList.remove('show')
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.remove('open')
+      resetError.classList.remove('show')
+    }
+  })
+
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    const email = document.getElementById('reset-email').value.trim()
+    const btn   = document.getElementById('btn-reset')
+
+    if (!email) {
+      document.getElementById('reset-error-msg').textContent = 'Enter your email address.'
+      resetError.classList.add('show')
+      return
+    }
+
+    btn.disabled    = true
+    btn.textContent = 'Sending…'
+    resetError.classList.remove('show')
+
+    const result = await AUTH.sendPasswordReset(email)
+
+    if (result.ok) {
+      modal.classList.remove('open')
+      showSuccess('Reset email sent! Check your inbox.')
+    } else {
+      document.getElementById('reset-error-msg').textContent = result.msg
+      resetError.classList.add('show')
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Send Reset Link'
+  })
+
+})
+</script>
+</body>
+</html>
