@@ -1,0 +1,68 @@
+/* ───────── GLOBAL BACKGROUND ───────── */
+body {
+  margin: 0;
+  background: #050908;
+  color: #e6f1ec;
+  overflow-x: hidden;
+}
+
+/* ── Noise texture (subtle grain) ── */
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  background-image: url("https://www.transparenttextures.com/patterns/asfalt-light.png");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Main radial glow ── */
+.bg-radial {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(56, 210, 90, 0.18) 0%,
+    transparent 65%
+  );
+  z-index: 0;
+}
+
+/* ── Moving gradient glow (premium feel) ── */
+.bg-animated {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(56, 210, 90, 0.08),
+    transparent,
+    rgba(56, 210, 90, 0.05)
+  );
+  background-size: 200% 200%;
+  animation: moveGlow 12s ease infinite;
+  z-index: 0;
+}
+
+@keyframes moveGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Grid lines (tech look) ── */
+.bg-lines {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+  z-index: 0;
+}
+
+/* ── Ensure UI stays above background ── */
+.auth-root {
+  position: relative;
+  z-index: 1;
+}
