@@ -7,7 +7,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAG-sl7HpAGsEHYBdYetJlHcT81E64lY0I",
   authDomain: "shuttlestepz-bfea2.firebaseapp.com",
   projectId: "shuttlestepz-bfea2",
-  storageBucket: "shuttlestepz-bfea2.firebasestorage.app",
+  storageBucket: "shuttlestepz-bfea2.appspot.com",
   messagingSenderId: "62299841228",
   appId: "1:62299841228:web:26a6c38215e5c35f5e1869",
 };
