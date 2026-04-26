@@ -1,246 +1,288 @@
-/* ============================================================
-   Shuttlestepz — signup.css
-   ============================================================ */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up — Shuttlestepz</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/signup.css">
+</head>
+<body>
+<div class="bg-noise"></div>
+<div class="bg-radial"></div>
+<div class="bg-lines"></div>
 
-.auth-root {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  position: relative; z-index: 1;
-}
+<div class="auth-root">
 
-/* ── Left: Form panel ───────────────────────────────────────── */
-.auth-panel {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 40px 40px; min-height: 100vh;
-  background: rgba(5,9,8,0.55);
-}
-.auth-box { width: 100%; max-width: 440px; }
+  <!-- ════ LEFT: FORM ════ -->
+  <div class="auth-panel">
+    <div class="auth-box anim-fade-up">
 
-/* ── Brand ──────────────────────────────────────────────────── */
-.auth-brand {
-  display: flex; align-items: center; gap: 12px;
-  text-decoration: none; margin-bottom: 36px;
-}
-.auth-brand-name {
-  font-family: var(--font-display);
-  font-size: 20px; font-weight: 800;
-  letter-spacing: 1px; color: var(--accent);
-}
+      <a href="index.html" class="auth-brand">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+          <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+          <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <span class="auth-brand-name">Shuttlestepz</span>
+      </a>
 
-/* ── Heading ────────────────────────────────────────────────── */
-.auth-title {
-  font-family: var(--font-display);
-  font-size: 34px; font-weight: 800;
-  color: var(--text); margin-bottom: 6px; line-height: 1.08;
-}
-.auth-subtitle {
-  font-size: 14px; color: var(--text2);
-  margin-bottom: 24px; line-height: 1.6;
-}
+      <h1 class="auth-title">Create account</h1>
+      <p class="auth-subtitle">Join thousands training smarter with AI coaching.</p>
 
-/* ── Error banner ───────────────────────────────────────────── */
-.banner {
-  display: none; align-items: flex-start; gap: 10px;
-  padding: 12px 14px; border-radius: var(--r-md);
-  font-size: 13px; line-height: 1.5; margin-bottom: 18px;
-}
-.banner.show    { display: flex; }
-.banner-error   { background: var(--red-dim); border: 1px solid rgba(224,72,72,0.25); color: #f09090; }
-.banner svg     { flex-shrink: 0; margin-top: 1px; }
+      <div class="banner banner-error" id="error-banner">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="#e04848" stroke-width="1.5"/>
+          <path d="M8 5v3.5M8 11v.5" stroke="#e04848" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span id="error-msg"></span>
+      </div>
 
-/* ── Section label ──────────────────────────────────────────── */
-.section-lbl {
-  font-family: var(--font-mono); font-size: 9px;
-  letter-spacing: 2.5px; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 10px;
-}
+      <!-- Role -->
+      <div class="section-lbl">I am a</div>
+      <div class="role-selector">
+        <div class="role-opt selected" data-role="student">
+          <span class="role-icon">🏸</span>Student
+        </div>
+        <div class="role-opt" data-role="teacher">
+          <span class="role-icon">👨‍🏫</span>Teacher
+        </div>
+        <div class="role-opt" data-role="coach">
+          <span class="role-icon">🏅</span>Coach
+        </div>
+      </div>
 
-/* ── Role selector ──────────────────────────────────────────── */
-.role-selector {
-  display: flex; gap: 8px; margin-bottom: 20px;
-}
-.role-opt {
-  flex: 1; padding: 11px 8px; text-align: center;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  cursor: pointer; transition: all .15s;
-  font-size: 11px; color: var(--text2);
-  font-family: var(--font-mono); letter-spacing: 1px;
-  user-select: none;
-}
-.role-opt:hover { border-color: var(--border2); color: var(--text); }
-.role-opt.selected {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-.role-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+      <!-- Plan -->
+      <div class="section-lbl">Choose plan</div>
+      <div class="plan-selector">
+        <div class="plan-opt selected" data-plan="free">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0 / forever</div>
+          <div class="plan-desc">5 sessions/day · Basic tracking</div>
+        </div>
+        <div class="plan-opt" data-plan="premium">
+          <div class="plan-badge">POPULAR</div>
+          <div class="plan-name">⭐ Premium</div>
+          <div class="plan-price">$7 / month</div>
+          <div class="plan-desc">Unlimited · Advanced analytics · Leaderboard</div>
+        </div>
+      </div>
 
-/* ── Plan selector ──────────────────────────────────────────── */
-.plan-selector {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 22px;
-}
-.plan-opt {
-  padding: 16px 14px; border: 2px solid var(--border);
-  border-radius: var(--r-lg); cursor: pointer;
-  transition: all .15s; position: relative; user-select: none;
-}
-.plan-opt:hover { border-color: var(--border2); }
-.plan-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
-.plan-badge {
-  position: absolute; top: -1px; right: 10px;
-  font-family: var(--font-mono); font-size: 8px;
-  letter-spacing: 1.5px; color: var(--gold);
-  background: var(--gold-dim);
-  border: 1px solid rgba(240,192,64,0.3);
-  border-radius: 0 0 5px 5px; padding: 2px 7px;
-}
-.plan-name {
-  font-family: var(--font-display);
-  font-size: 15px; font-weight: 700;
-  color: var(--text); margin-bottom: 3px;
-}
-.plan-opt.selected .plan-name { color: var(--accent); }
-.plan-price {
-  font-family: var(--font-mono); font-size: 10px;
-  letter-spacing: 1px; color: var(--text3); margin-bottom: 7px;
-}
-.plan-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
+      <!-- Form fields -->
+      <form id="signup-form" onsubmit="return false" novalidate>
 
-/* ── Password field + strength ──────────────────────────────── */
-.pw-wrap { position: relative; }
-.pw-toggle {
-  position: absolute; right: 12px; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none;
-  color: var(--text3); cursor: pointer;
-  font-size: 16px; line-height: 1; padding: 4px;
-  transition: color .15s;
-}
-.pw-toggle:hover { color: var(--text2); }
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input class="form-input" type="text" id="username"
+            placeholder="e.g. shuttler99" autocomplete="username" required>
+          <div class="form-hint">At least 3 characters · Shown on leaderboard</div>
+        </div>
 
-.strength-bar {
-  height: 3px; border-radius: 2px;
-  background: var(--bg3); overflow: hidden; margin-top: 8px;
-}
-.strength-fill {
-  height: 100%; border-radius: 2px;
-  width: 0; transition: width .3s, background .3s;
-}
-.strength-label {
-  font-size: 10px; letter-spacing: 1px;
-  font-family: var(--font-mono);
-  margin-top: 4px; min-height: 14px;
-}
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input class="form-input" type="email" id="email"
+            placeholder="you@example.com" autocomplete="email" required>
+        </div>
 
-/* ── School ID ──────────────────────────────────────────────── */
-#school-group { display: none; }
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="password"
+              placeholder="Min. 6 characters" autocomplete="new-password"
+              required style="padding-right:44px">
+            <button type="button" class="pw-toggle" id="toggle-pw">👁</button>
+          </div>
+          <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+          <div class="strength-label" id="strength-label"></div>
+        </div>
 
-/* ── Terms ──────────────────────────────────────────────────── */
-.terms-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  margin: 16px 0;
-}
-.terms-row input[type=checkbox] {
-  width: 16px; height: 16px; flex-shrink: 0;
-  accent-color: var(--accent); margin-top: 2px; cursor: pointer;
-}
-.terms-row label {
-  font-size: 12px; color: var(--text2);
-  line-height: 1.55; cursor: pointer;
-}
-.terms-row a { color: var(--accent); text-decoration: none; }
+        <!-- School ID (teachers/coaches only) -->
+        <div class="form-group" id="school-group">
+          <label class="form-label" for="school-id">
+            School / Club Code <span style="color:var(--text3);font-weight:400">(optional)</span>
+          </label>
+          <input class="form-input" type="text" id="school-id"
+            placeholder="e.g. STJ2024" autocomplete="off">
+          <div class="form-hint">Ask your admin for the code</div>
+        </div>
 
-/* ── Button spinner ─────────────────────────────────────────── */
-.btn-spinner {
-  display: inline-block; width: 14px; height: 14px;
-  border: 2px solid rgba(5,9,8,0.25);
-  border-top-color: #050908; border-radius: 50%;
-  animation: spin .6s linear infinite;
-  margin-right: 6px; vertical-align: middle;
-}
+        <!-- Terms -->
+        <div class="terms-row">
+          <input type="checkbox" id="terms" required>
+          <label for="terms">
+            I agree to the <a href="#">Terms of Service</a> and
+            <a href="#">Privacy Policy</a>.
+            Data stored on Firebase — never sold.
+          </label>
+        </div>
 
-/* ── Footer ─────────────────────────────────────────────────── */
-.auth-footer {
-  text-align: center; margin-top: 18px;
-  font-size: 12px; color: var(--text3); line-height: 2;
-}
-.auth-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
-.auth-footer a:hover { text-decoration: underline; }
+        <button type="submit" class="btn btn-primary btn-full"
+          style="padding:15px;font-size:15px" id="btn-signup">
+          Create Account →
+        </button>
 
-/* ── Right: Deco panel ──────────────────────────────────────── */
-.auth-deco {
-  background: rgba(14,22,16,0.82);
-  border-left: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 60px 48px; position: relative; overflow: hidden;
-  backdrop-filter: blur(4px);
-}
-.auth-deco::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(circle at 50% 70%, rgba(56,210,90,0.08) 0%, transparent 65%);
-  pointer-events: none;
-}
-.deco-inner { position: relative; z-index: 1; max-width: 380px; width: 100%; }
+      </form>
 
-.deco-eyebrow {
-  font-family: var(--font-mono); font-size: 10px;
-  letter-spacing: 3px; color: var(--accent);
-  text-transform: uppercase; margin-bottom: 16px;
-  display: flex; align-items: center; gap: 8px;
-}
-.deco-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent); }
+      <div class="auth-footer">
+        Already have an account? <a href="login.html">Log In</a><br>
+        <span style="font-size:11px;color:var(--text4)">No credit card needed for free plan.</span>
+      </div>
 
-.deco-title {
-  font-family: var(--font-display);
-  font-size: 36px; font-weight: 800;
-  line-height: 1.08; color: var(--text); margin-bottom: 28px;
-}
-.deco-title .g { color: var(--accent); }
+    </div>
+  </div>
 
-/* ── Steps list ─────────────────────────────────────────────── */
-.step-list { list-style: none; }
-.step-list li {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 16px 0; border-bottom: 1px solid var(--border);
-}
-.step-list li:last-child { border-bottom: none; }
-.step-num {
-  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
-  background: var(--accent-dim); border: 1px solid var(--border2);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 11px;
-  font-weight: 700; color: var(--accent);
-}
-.step-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
-.step-desc  { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  <!-- ════ RIGHT: DECO ════ -->
+  <div class="auth-deco">
+    <div class="deco-inner anim-fade-up anim-delay-2">
 
-/* ── XP preview ─────────────────────────────────────────────── */
-.xp-preview {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--r-lg); padding: 16px 18px;
-  margin-top: 24px; display: flex; align-items: center; gap: 14px;
-}
-.xp-icon { font-size: 28px; }
-.xp-text-title {
-  font-family: var(--font-display);
-  font-size: 14px; font-weight: 700;
-  color: var(--text); margin-bottom: 3px;
-}
-.xp-text-sub { font-size: 11px; color: var(--text2); }
-.xp-text-sub span { color: var(--gold); font-weight: 600; }
+      <div class="deco-eyebrow">Free to Start</div>
+      <h2 class="deco-title">From beginner<br>to <span class="g">elite.</span></h2>
 
-/* ── Mobile ─────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .auth-root { grid-template-columns: 1fr; }
-  .auth-deco { display: none; }
-}
-@media (max-width: 480px) {
-  .auth-panel { padding: 28px 18px; }
-  .auth-title { font-size: 26px; }
-  .plan-selector { grid-template-columns: 1fr; }
-}
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Create your account</div>
+            <div class="step-desc">30 seconds. No credit card for free plan.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">Allow camera access</div>
+            <div class="step-desc">AI runs in your browser. No video stored or sent anywhere.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">Stand 1.5–2m from camera</div>
+            <div class="step-desc">Full body visible. AI calibrates your position automatically.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-title">Move when called</div>
+            <div class="step-desc">React to voice prompts. Score, XP and stats update live.</div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="xp-preview">
+        <div class="xp-icon">⚡</div>
+        <div>
+          <div class="xp-text-title">Earn XP from your first session</div>
+          <div class="xp-text-sub">
+            Sign up bonus: <span>+100 XP</span> · First session: <span>+50 XP</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/auth.js"></script>
+<script>
+window.addEventListener('load', async () => {
+  await new Promise(r => setTimeout(r, 400))
+  if (window.AUTH) AUTH.requireGuest()
+
+  // Role selector
+  let role = 'student'
+  document.querySelectorAll('.role-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('selected'))
+      opt.classList.add('selected')
+      role = opt.dataset.role
+      document.getElementById('school-group').style.display =
+        role !== 'student' ? 'block' : 'none'
+    })
+  })
+
+  // Plan selector
+  let plan = 'free'
+  document.querySelectorAll('.plan-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.plan-opt').forEach(o => o.classList.remove('selected'))
+      opt.classList.add('selected')
+      plan = opt.dataset.plan
+    })
+  })
+
+  // Show/hide password
+  const pwEl = document.getElementById('password')
+  document.getElementById('toggle-pw').onclick = () => {
+    const show = pwEl.type === 'text'
+    pwEl.type = show ? 'password' : 'text'
+    document.getElementById('toggle-pw').textContent = show ? '👁' : '🙈'
+  }
+
+  // Password strength
+  const STRENGTHS = [
+    { label:'', color:'transparent' },
+    { label:'Weak',        color:'var(--red)'    },
+    { label:'Fair',        color:'var(--amber)'  },
+    { label:'Good',        color:'var(--amber)'  },
+    { label:'Strong',      color:'var(--accent)' },
+    { label:'Very Strong', color:'var(--accent)' },
+  ]
+  pwEl.addEventListener('input', () => {
+    const pw = pwEl.value; let s = 0
+    if (pw.length >= 6)            s++
+    if (pw.length >= 10)           s++
+    if (/[A-Z]/.test(pw))        s++
+    if (/[0-9]/.test(pw))        s++
+    if (/[^a-zA-Z0-9]/.test(pw)) s++
+    const st = STRENGTHS[s]
+    document.getElementById('strength-fill').style.cssText =
+      `width:${s*20}%;background:${st.color}`
+    const lbl = document.getElementById('strength-label')
+    lbl.textContent = st.label; lbl.style.color = st.color
+  })
+
+  // Error helper
+  const errB = document.getElementById('error-banner')
+  function showErr(msg) {
+    document.getElementById('error-msg').textContent = msg
+    errB.classList.add('show')
+  }
+  function setLoading(on) {
+    const b = document.getElementById('btn-signup')
+    b.disabled = on
+    b.innerHTML = on ? '<span class="btn-spinner"></span>Creating account…' : 'Create Account →'
+  }
+
+  // Signup
+  document.getElementById('signup-form').addEventListener('submit', async () => {
+    const username = document.getElementById('username').value.trim()
+    const email    = document.getElementById('email').value.trim()
+    const pw       = document.getElementById('password').value
+    const schoolId = document.getElementById('school-id').value.trim() || null
+    const terms    = document.getElementById('terms').checked
+
+    errB.classList.remove('show')
+
+    if (!username || username.length < 3) return showErr('Username must be at least 3 characters.')
+    if (!email || !email.includes('@'))   return showErr('Enter a valid email address.')
+    if (!pw || pw.length < 6)            return showErr('Password must be at least 6 characters.')
+    if (!terms)                           return showErr('Please accept the Terms of Service.')
+
+    setLoading(true)
+    const res = await AUTH.signup(username, email, pw, role, schoolId)
+    if (res.ok) {
+      if (plan === 'premium') await AUTH.upgradePlan(res.user.uid, 'premium')
+      window.location.href = 'dashboard.html'
+    } else {
+      showErr(res.msg); setLoading(false)
+    }
+  })
+})
+</script>
+</body>
+</html>
