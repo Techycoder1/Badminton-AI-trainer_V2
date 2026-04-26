@@ -1,13 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign Up — Shuttlestepz</title>
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="style.css">
-<style>
-/* ── Layout ────────────────────────────────────────────────── */
+/* ============================================================
+   Shuttlestepz — signup.css
+   ============================================================ */
+
 .auth-root {
   min-height: 100vh;
   display: grid;
@@ -15,14 +9,13 @@
   position: relative; z-index: 1;
 }
 
+/* ── Left: Form panel ───────────────────────────────────────── */
 .auth-panel {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 48px 40px;
-  min-height: 100vh;
-  background: rgba(5,9,8,0.6);
+  padding: 40px 40px; min-height: 100vh;
+  background: rgba(5,9,8,0.55);
 }
-
 .auth-box { width: 100%; max-width: 440px; }
 
 /* ── Brand ──────────────────────────────────────────────────── */
@@ -36,57 +29,74 @@
   letter-spacing: 1px; color: var(--accent);
 }
 
+/* ── Heading ────────────────────────────────────────────────── */
 .auth-title {
   font-family: var(--font-display);
-  font-size: 32px; font-weight: 800;
-  color: var(--text); margin-bottom: 6px; line-height: 1.1;
+  font-size: 34px; font-weight: 800;
+  color: var(--text); margin-bottom: 6px; line-height: 1.08;
 }
 .auth-subtitle {
   font-size: 14px; color: var(--text2);
-  margin-bottom: 28px; line-height: 1.6;
+  margin-bottom: 24px; line-height: 1.6;
 }
 
 /* ── Error banner ───────────────────────────────────────────── */
 .banner {
   display: none; align-items: flex-start; gap: 10px;
   padding: 12px 14px; border-radius: var(--r-md);
-  font-size: 13px; line-height: 1.5; margin-bottom: 20px;
+  font-size: 13px; line-height: 1.5; margin-bottom: 18px;
 }
-.banner.show { display: flex; }
-.banner-error {
-  background: var(--red-dim);
-  border: 1px solid rgba(224,72,72,0.25);
-  color: #f08080;
+.banner.show    { display: flex; }
+.banner-error   { background: var(--red-dim); border: 1px solid rgba(224,72,72,0.25); color: #f09090; }
+.banner svg     { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Section label ──────────────────────────────────────────── */
+.section-lbl {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 2.5px; color: var(--text3);
+  text-transform: uppercase; margin-bottom: 10px;
 }
-.banner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ── Role selector ──────────────────────────────────────────── */
+.role-selector {
+  display: flex; gap: 8px; margin-bottom: 20px;
+}
+.role-opt {
+  flex: 1; padding: 11px 8px; text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer; transition: all .15s;
+  font-size: 11px; color: var(--text2);
+  font-family: var(--font-mono); letter-spacing: 1px;
+  user-select: none;
+}
+.role-opt:hover { border-color: var(--border2); color: var(--text); }
+.role-opt.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.role-icon { font-size: 18px; display: block; margin-bottom: 4px; }
 
 /* ── Plan selector ──────────────────────────────────────────── */
 .plan-selector {
   display: grid; grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 24px;
+  gap: 10px; margin-bottom: 22px;
 }
 .plan-opt {
-  padding: 16px 14px;
-  border: 2px solid var(--border);
-  border-radius: var(--r-lg);
-  cursor: pointer;
-  transition: all 0.15s;
-  position: relative;
-  user-select: none;
+  padding: 16px 14px; border: 2px solid var(--border);
+  border-radius: var(--r-lg); cursor: pointer;
+  transition: all .15s; position: relative; user-select: none;
 }
 .plan-opt:hover { border-color: var(--border2); }
-.plan-opt.selected {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-}
+.plan-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
 .plan-badge {
   position: absolute; top: -1px; right: 10px;
   font-family: var(--font-mono); font-size: 8px;
   letter-spacing: 1.5px; color: var(--gold);
   background: var(--gold-dim);
   border: 1px solid rgba(240,192,64,0.3);
-  border-radius: 0 0 5px 5px;
-  padding: 2px 7px;
+  border-radius: 0 0 5px 5px; padding: 2px 7px;
 }
 .plan-name {
   font-family: var(--font-display);
@@ -95,42 +105,26 @@
 }
 .plan-opt.selected .plan-name { color: var(--accent); }
 .plan-price {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 1px;
-  color: var(--text3); margin-bottom: 8px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 1px; color: var(--text3); margin-bottom: 7px;
 }
 .plan-desc { font-size: 11px; color: var(--text2); line-height: 1.5; }
 
-/* ── Role selector ──────────────────────────────────────────── */
-.role-selector {
-  display: flex; gap: 8px; margin-bottom: 20px;
+/* ── Password field + strength ──────────────────────────────── */
+.pw-wrap { position: relative; }
+.pw-toggle {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text3); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 4px;
+  transition: color .15s;
 }
-.role-opt {
-  flex: 1; padding: 10px 8px; text-align: center;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  cursor: pointer; transition: all .15s;
-  font-size: 12px; color: var(--text2);
-  font-family: var(--font-mono); letter-spacing: 1px;
-}
-.role-opt:hover { border-color: var(--border2); color: var(--text); }
-.role-opt.selected {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  color: var(--accent);
-}
-.role-opt .role-icon { font-size: 18px; display: block; margin-bottom: 4px; }
-.form-section-label {
-  font-family: var(--font-mono); font-size: 9px;
-  letter-spacing: 2.5px; color: var(--text3);
-  text-transform: uppercase; margin-bottom: 10px;
-}
+.pw-toggle:hover { color: var(--text2); }
 
-/* ── Password strength ──────────────────────────────────────── */
-.strength-wrap { margin-top: 8px; }
 .strength-bar {
   height: 3px; border-radius: 2px;
-  background: var(--bg3); overflow: hidden;
+  background: var(--bg3); overflow: hidden; margin-top: 8px;
 }
 .strength-fill {
   height: 100%; border-radius: 2px;
@@ -142,15 +136,8 @@
   margin-top: 4px; min-height: 14px;
 }
 
-/* ── Show/hide password ─────────────────────────────────────── */
-.pw-wrap { position: relative; }
-.pw-toggle {
-  position: absolute; right: 12px; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none;
-  color: var(--text3); cursor: pointer;
-  font-size: 16px; line-height: 1; padding: 4px;
-}
+/* ── School ID ──────────────────────────────────────────────── */
+#school-group { display: none; }
 
 /* ── Terms ──────────────────────────────────────────────────── */
 .terms-row {
@@ -162,40 +149,39 @@
   accent-color: var(--accent); margin-top: 2px; cursor: pointer;
 }
 .terms-row label {
-  font-size: 12px; color: var(--text2); line-height: 1.5; cursor: pointer;
+  font-size: 12px; color: var(--text2);
+  line-height: 1.55; cursor: pointer;
 }
 .terms-row a { color: var(--accent); text-decoration: none; }
 
-/* ── Loading spinner ────────────────────────────────────────── */
+/* ── Button spinner ─────────────────────────────────────────── */
 .btn-spinner {
   display: inline-block; width: 14px; height: 14px;
-  border: 2px solid rgba(0,0,0,0.2);
-  border-top-color: #000; border-radius: 50%;
+  border: 2px solid rgba(5,9,8,0.25);
+  border-top-color: #050908; border-radius: 50%;
   animation: spin .6s linear infinite;
-  margin-right: 8px; vertical-align: middle;
+  margin-right: 6px; vertical-align: middle;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Footer ─────────────────────────────────────────────────── */
 .auth-footer {
-  text-align: center; margin-top: 20px;
-  font-size: 12px; color: var(--text3); line-height: 1.8;
+  text-align: center; margin-top: 18px;
+  font-size: 12px; color: var(--text3); line-height: 2;
 }
 .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.auth-footer a:hover { text-decoration: underline; }
 
-/* ── Deco panel ─────────────────────────────────────────────── */
+/* ── Right: Deco panel ──────────────────────────────────────── */
 .auth-deco {
-  background: rgba(14,22,16,0.85);
+  background: rgba(14,22,16,0.82);
   border-left: 1px solid var(--border);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 60px 48px;
-  position: relative; overflow: hidden;
+  padding: 60px 48px; position: relative; overflow: hidden;
   backdrop-filter: blur(4px);
 }
 .auth-deco::before {
-  content: '';
-  position: absolute; inset: 0;
+  content: ''; position: absolute; inset: 0;
   background: radial-gradient(circle at 50% 70%, rgba(56,210,90,0.08) 0%, transparent 65%);
   pointer-events: none;
 }
@@ -207,9 +193,8 @@
   text-transform: uppercase; margin-bottom: 16px;
   display: flex; align-items: center; gap: 8px;
 }
-.deco-eyebrow::before {
-  content: ''; width: 24px; height: 1px; background: var(--accent);
-}
+.deco-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent); }
+
 .deco-title {
   font-family: var(--font-display);
   font-size: 36px; font-weight: 800;
@@ -217,7 +202,7 @@
 }
 .deco-title .g { color: var(--accent); }
 
-/* ── Steps ──────────────────────────────────────────────────── */
+/* ── Steps list ─────────────────────────────────────────────── */
 .step-list { list-style: none; }
 .step-list li {
   display: flex; align-items: flex-start; gap: 14px;
@@ -225,361 +210,37 @@
 }
 .step-list li:last-child { border-bottom: none; }
 .step-num {
-  width: 30px; height: 30px; flex-shrink: 0;
-  border-radius: 50%;
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
   background: var(--accent-dim); border: 1px solid var(--border2);
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-  color: var(--accent);
+  font-family: var(--font-mono); font-size: 11px;
+  font-weight: 700; color: var(--accent);
 }
 .step-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
 .step-desc  { font-size: 12px; color: var(--text2); line-height: 1.5; }
 
 /* ── XP preview ─────────────────────────────────────────────── */
 .xp-preview {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 16px 18px;
-  margin-top: 24px;
-  display: flex; align-items: center; gap: 14px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px 18px;
+  margin-top: 24px; display: flex; align-items: center; gap: 14px;
 }
 .xp-icon { font-size: 28px; }
 .xp-text-title {
   font-family: var(--font-display);
-  font-size: 14px; font-weight: 700; color: var(--text);
-  margin-bottom: 2px;
+  font-size: 14px; font-weight: 700;
+  color: var(--text); margin-bottom: 3px;
 }
 .xp-text-sub { font-size: 11px; color: var(--text2); }
 .xp-text-sub span { color: var(--gold); font-weight: 600; }
 
-@media (max-width: 768px) {
+/* ── Mobile ─────────────────────────────────────────────────── */
+@media (max-width: 900px) {
   .auth-root { grid-template-columns: 1fr; }
   .auth-deco { display: none; }
-  .auth-panel { padding: 36px 20px; }
 }
-</style>
-</head>
-<body>
-
-<div class="bg-noise"></div>
-<div class="bg-radial"></div>
-<div class="bg-animated"></div>
-<div class="bg-lines"></div>
-
-<!-- rest of your signup page -->
-
-<div class="auth-root">
-
-  <!-- ═══ FORM PANEL ═══ -->
-  <div class="auth-panel">
-    <div class="auth-box">
-
-      <!-- Brand -->
-      <a href="index.html" class="auth-brand">
-        <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-          <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
-          <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
-          <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
-          <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
-          <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-        <span class="auth-brand-name">Shuttlestepz</span>
-      </a>
-
-      <h1 class="auth-title">Create account</h1>
-      <p class="auth-subtitle">Join thousands training smarter with AI coaching.</p>
-
-      <!-- Error banner -->
-      <div class="banner banner-error" id="error-banner">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="7" stroke="#e04848" stroke-width="1.5"/>
-          <path d="M8 5v3.5M8 11v.5" stroke="#e04848" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <span id="error-msg">Error.</span>
-      </div>
-
-      <!-- Role selector -->
-      <div class="form-section-label">I am a</div>
-      <div class="role-selector" id="role-selector">
-        <div class="role-opt selected" data-role="student">
-          <span class="role-icon">🏸</span>Student
-        </div>
-        <div class="role-opt" data-role="teacher">
-          <span class="role-icon">👨‍🏫</span>Teacher
-        </div>
-        <div class="role-opt" data-role="coach">
-          <span class="role-icon">🏅</span>Coach
-        </div>
-      </div>
-
-      <!-- Plan selector -->
-      <div class="form-section-label">Choose plan</div>
-      <div class="plan-selector">
-        <div class="plan-opt selected" data-plan="free">
-          <div class="plan-name">Free</div>
-          <div class="plan-price">$0 / forever</div>
-          <div class="plan-desc">5 sessions/day · Basic tracking</div>
-        </div>
-        <div class="plan-opt" data-plan="premium">
-          <div class="plan-badge">POPULAR</div>
-          <div class="plan-name">⭐ Premium</div>
-          <div class="plan-price">$7 / month</div>
-          <div class="plan-desc">Unlimited · Advanced analytics · Leaderboard</div>
-        </div>
-      </div>
-
-      <!-- Form -->
-      <form id="signup-form" onsubmit="return false" novalidate>
-
-        <div class="form-group">
-          <label class="form-label" for="username">Username</label>
-          <input class="form-input" type="text" id="username"
-            placeholder="e.g. shuttler99"
-            autocomplete="username" required>
-          <div class="form-hint">At least 3 characters · Shown on leaderboard</div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="email">Email Address</label>
-          <input class="form-input" type="email" id="email"
-            placeholder="you@example.com"
-            autocomplete="email" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="password">Password</label>
-          <div class="pw-wrap">
-            <input class="form-input" type="password" id="password"
-              placeholder="Min. 6 characters"
-              autocomplete="new-password" required
-              style="padding-right:44px">
-            <button type="button" class="pw-toggle" id="toggle-pw" title="Show/hide password">👁</button>
-          </div>
-          <div class="strength-wrap">
-            <div class="strength-bar">
-              <div class="strength-fill" id="strength-fill"></div>
-            </div>
-            <div class="strength-label" id="strength-label"></div>
-          </div>
-        </div>
-
-        <!-- School ID field (shown for teacher/coach) -->
-        <div class="form-group" id="school-group" style="display:none">
-          <label class="form-label" for="school-id">School / Club Code <span style="color:var(--text3);font-weight:400">(optional)</span></label>
-          <input class="form-input" type="text" id="school-id"
-            placeholder="e.g. STJ2024"
-            autocomplete="off">
-          <div class="form-hint">Ask your school admin for the code</div>
-        </div>
-
-        <!-- Terms -->
-        <div class="terms-row">
-          <input type="checkbox" id="terms" required>
-          <label for="terms">
-            I agree to the <a href="#">Terms of Service</a> and
-            <a href="#">Privacy Policy</a>.
-            Your data is stored locally and on Firebase — never sold.
-          </label>
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-full"
-          style="padding:15px;font-size:15px" id="btn-signup">
-          Create Account →
-        </button>
-
-      </form>
-
-      <div class="auth-footer">
-        Already have an account?
-        <a href="login.html">Log In</a>
-        <br>
-        <span style="color:var(--text4);font-size:11px;margin-top:4px;display:block">
-          No credit card needed for free plan. Cancel anytime.
-        </span>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ═══ DECO PANEL ═══ -->
-  <div class="auth-deco">
-    <div class="deco-inner">
-
-      <div class="deco-eyebrow">Free to Start</div>
-
-      <h2 class="deco-title">
-        From beginner<br>to <span class="g">elite.</span>
-      </h2>
-
-      <ul class="step-list">
-        <li>
-          <div class="step-num">1</div>
-          <div>
-            <div class="step-title">Create your account</div>
-            <div class="step-desc">Takes 30 seconds. No credit card needed for free plan.</div>
-          </div>
-        </li>
-        <li>
-          <div class="step-num">2</div>
-          <div>
-            <div class="step-title">Allow camera access</div>
-            <div class="step-desc">AI runs entirely in your browser. No video is stored or sent anywhere.</div>
-          </div>
-        </li>
-        <li>
-          <div class="step-num">3</div>
-          <div>
-            <div class="step-title">Stand 1.5–2m from camera</div>
-            <div class="step-desc">Full body visible. The AI calibrates your centre automatically.</div>
-          </div>
-        </li>
-        <li>
-          <div class="step-num">4</div>
-          <div>
-            <div class="step-title">Move when called</div>
-            <div class="step-desc">React to voice and on-screen prompts. Score, XP and stats update live.</div>
-          </div>
-        </li>
-      </ul>
-
-      <!-- XP preview -->
-      <div class="xp-preview">
-        <div class="xp-icon">⚡</div>
-        <div>
-          <div class="xp-text-title">Earn XP from your first session</div>
-          <div class="xp-text-sub">
-            Sign up bonus: <span>+100 XP</span> ·
-            First session: <span>+50 XP</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-</div>
-
-<!-- Firebase + Auth -->
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
-
-<script>
-window.addEventListener('load', async () => {
-
-  // ── Redirect if already logged in ──────────────────────────
-  await new Promise(r => setTimeout(r, 300))
-  if (window.AUTH) AUTH.requireGuest()
-
-  // ── Role selector ─────────────────────────────────────────
-  let selectedRole = 'student'
-  document.querySelectorAll('.role-opt').forEach(opt => {
-    opt.addEventListener('click', () => {
-      document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('selected'))
-      opt.classList.add('selected')
-      selectedRole = opt.dataset.role
-      // Show school ID for teachers/coaches
-      const schoolGrp = document.getElementById('school-group')
-      schoolGrp.style.display = selectedRole !== 'student' ? 'block' : 'none'
-    })
-  })
-
-  // ── Plan selector ─────────────────────────────────────────
-  let selectedPlan = 'free'
-  document.querySelectorAll('.plan-opt').forEach(opt => {
-    opt.addEventListener('click', () => {
-      document.querySelectorAll('.plan-opt').forEach(o => o.classList.remove('selected'))
-      opt.classList.add('selected')
-      selectedPlan = opt.dataset.plan
-    })
-  })
-
-  // ── Show/hide password ────────────────────────────────────
-  const pwInput  = document.getElementById('password')
-  const togglePw = document.getElementById('toggle-pw')
-  togglePw.onclick = () => {
-    const isText   = pwInput.type === 'text'
-    pwInput.type   = isText ? 'password' : 'text'
-    togglePw.textContent = isText ? '👁' : '🙈'
-  }
-
-  // ── Password strength ─────────────────────────────────────
-  const STRENGTH = [
-    { label: '',            color: 'transparent', score: 0 },
-    { label: 'Weak',        color: 'var(--red)',   score: 1 },
-    { label: 'Fair',        color: 'var(--amber)', score: 2 },
-    { label: 'Good',        color: 'var(--amber)', score: 3 },
-    { label: 'Strong',      color: 'var(--accent)',score: 4 },
-    { label: 'Very Strong', color: 'var(--accent)',score: 5 },
-  ]
-  pwInput.addEventListener('input', () => {
-    const pw    = pwInput.value
-    let score   = 0
-    if (pw.length >= 6)              score++
-    if (pw.length >= 10)             score++
-    if (/[A-Z]/.test(pw))           score++
-    if (/[0-9]/.test(pw))           score++
-    if (/[^a-zA-Z0-9]/.test(pw))   score++
-    const s = STRENGTH[score]
-    document.getElementById('strength-fill').style.width      = (score * 20) + '%'
-    document.getElementById('strength-fill').style.background = s.color
-    document.getElementById('strength-label').textContent     = s.label
-    document.getElementById('strength-label').style.color     = s.color
-  })
-
-  // ── Error helper ──────────────────────────────────────────
-  function showError(msg) {
-    document.getElementById('error-msg').textContent = msg
-    document.getElementById('error-banner').classList.add('show')
-  }
-  function clearError() {
-    document.getElementById('error-banner').classList.remove('show')
-  }
-  function setLoading(loading) {
-    const btn = document.getElementById('btn-signup')
-    btn.disabled = loading
-    btn.innerHTML = loading
-      ? '<span class="btn-spinner"></span>Creating account…'
-      : 'Create Account →'
-  }
-
-  // ── Signup form ───────────────────────────────────────────
-  document.getElementById('signup-form').addEventListener('submit', async () => {
-    const username = document.getElementById('username').value.trim()
-    const email    = document.getElementById('email').value.trim()
-    const password = document.getElementById('password').value
-    const schoolId = document.getElementById('school-id').value.trim() || null
-    const terms    = document.getElementById('terms').checked
-
-    clearError()
-
-    // Client-side validation
-    if (!username || username.length < 3)
-      return showError('Username must be at least 3 characters.')
-    if (!email || !email.includes('@'))
-      return showError('Enter a valid email address.')
-    if (!password || password.length < 6)
-      return showError('Password must be at least 6 characters.')
-    if (!terms)
-      return showError('Please accept the Terms of Service to continue.')
-
-    setLoading(true)
-
-    const result = await AUTH.signup(username, email, password, selectedRole, schoolId)
-
-    if (result.ok) {
-      // Apply premium plan if selected
-      if (selectedPlan === 'premium') {
-        await AUTH.upgradePlan(result.user.uid, 'premium')
-      }
-      window.location.href = 'dashboard.html'
-    } else {
-      showError(result.msg)
-      setLoading(false)
-    }
-  })
-
-})
-</script>
-</body>
-</html>
+@media (max-width: 480px) {
+  .auth-panel { padding: 28px 18px; }
+  .auth-title { font-size: 26px; }
+  .plan-selector { grid-template-columns: 1fr; }
+}
