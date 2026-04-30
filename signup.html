@@ -99,7 +99,7 @@
         </div>
 
         <!-- School ID (teachers/coaches only) -->
-        <div class="form-group" id="school-group">
+        <div class="form-group" id="school-group" style="display:none">
           <label class="form-label" for="school-id">
             School / Club Code <span style="color:var(--text3);font-weight:400">(optional)</span>
           </label>
@@ -186,47 +186,42 @@
 
 </div>
 
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
 <!--
-  Replace the entire <script> block at the bottom of signup.html
-  with this. Everything above it (the HTML, CSS classes, form fields) stays identical.
-
-  KEY FIXES vs your original:
-    1. Removed the fragile setTimeout(400) race — replaced with a proper
-       module-load event check using a Promise-based AUTH_READY flag.
-    2. setLoading(false) is now called in a finally{} block — button ALWAYS resets.
-    3. upgradePlan failure is handled and shown to user, not silently swallowed.
-    4. showErr() also scrolls the banner into view on mobile.
-    5. school-group hidden by default in CSS; JS only shows it for non-students.
+  ═══════════════════════════════════════════════════
+  SCRIPTS
+  • Only ONE module script tag — auth.js imports firebase.js internally
+  • NO separate firebase.js script tag (caused double-init)
+  • Absolute path for GitHub Pages compatibility
+  ═══════════════════════════════════════════════════
 -->
 
-<script type="module">
-// auth.js sets window.AUTH and fires this event when it's ready
-// We import auth.js as a module to guarantee load order
-import "./js/auth.js"; // triggers window.AUTH = {...} inside auth.js
-</script>
+<!-- Loads auth.js which internally imports firebase.js — sets window.AUTH -->
+<script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
 
 <script>
-// This non-module script runs after the DOM is ready.
-// By the time DOMContentLoaded fires, the module above has already executed.
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ── Guard: wait for AUTH to be available ──────────────────
-  // Modules execute synchronously before DOMContentLoaded in modern browsers,
-  // but add a small fallback poll just in case (e.g. slow mobile).
+  // Wait for window.AUTH to be set by the module above
+  // Modules run async — poll every 50ms, give up after 2 seconds
   function waitForAuth(cb, attempts = 0) {
     if (window.AUTH) return cb();
-    if (attempts > 20) return console.error("AUTH module never loaded.");
+    if (attempts > 40) {
+      console.error("[signup] AUTH never loaded — check js/auth.js import path");
+      document.getElementById("error-msg").textContent =
+        "App failed to load. Please hard-refresh (Ctrl+Shift+R) and try again.";
+      document.getElementById("error-banner").classList.add("show");
+      return;
+    }
     setTimeout(() => waitForAuth(cb, attempts + 1), 50);
   }
 
   waitForAuth(async () => {
+    console.log("[signup] AUTH ready, initialising form");
 
-    // ── Redirect if already logged in ────────────────────────
+    // ── Redirect if already logged in ──────────────────────
     await AUTH.requireGuest();
 
-    // ── Role selector ─────────────────────────────────────────
+    // ── Role selector ───────────────────────────────────────
     let role = "student";
     document.querySelectorAll(".role-opt").forEach((opt) => {
       opt.addEventListener("click", () => {
@@ -238,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // ── Plan selector ─────────────────────────────────────────
+    // ── Plan selector ───────────────────────────────────────
     let plan = "free";
     document.querySelectorAll(".plan-opt").forEach((opt) => {
       opt.addEventListener("click", () => {
@@ -248,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // ── Password toggle ───────────────────────────────────────
+    // ── Password toggle ─────────────────────────────────────
     const pwEl = document.getElementById("password");
     document.getElementById("toggle-pw").onclick = () => {
       const showing = pwEl.type === "text";
@@ -256,23 +251,23 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("toggle-pw").textContent = showing ? "👁" : "🙈";
     };
 
-    // ── Password strength ─────────────────────────────────────
+    // ── Password strength ───────────────────────────────────
     const STRENGTHS = [
-      { label: "",            color: "transparent"      },
-      { label: "Weak",        color: "var(--red)"       },
-      { label: "Fair",        color: "var(--amber)"     },
-      { label: "Good",        color: "var(--amber)"     },
-      { label: "Strong",      color: "var(--accent)"    },
-      { label: "Very Strong", color: "var(--accent)"    },
+      { label: "",            color: "transparent"   },
+      { label: "Weak",        color: "var(--red)"    },
+      { label: "Fair",        color: "var(--amber)"  },
+      { label: "Good",        color: "var(--amber)"  },
+      { label: "Strong",      color: "var(--accent)" },
+      { label: "Very Strong", color: "var(--accent)" },
     ];
     pwEl.addEventListener("input", () => {
       const pw = pwEl.value;
       let s = 0;
-      if (pw.length >= 6)             s++;
-      if (pw.length >= 10)            s++;
-      if (/[A-Z]/.test(pw))           s++;
-      if (/[0-9]/.test(pw))           s++;
-      if (/[^a-zA-Z0-9]/.test(pw))   s++;
+      if (pw.length >= 6)           s++;
+      if (pw.length >= 10)          s++;
+      if (/[A-Z]/.test(pw))         s++;
+      if (/[0-9]/.test(pw))         s++;
+      if (/[^a-zA-Z0-9]/.test(pw))  s++;
       const st = STRENGTHS[s];
       document.getElementById("strength-fill").style.cssText =
         `width:${s * 20}%;background:${st.color}`;
@@ -281,13 +276,13 @@ document.addEventListener("DOMContentLoaded", () => {
       lbl.style.color = st.color;
     });
 
-    // ── UI helpers ────────────────────────────────────────────
+    // ── UI helpers ──────────────────────────────────────────
     const errB = document.getElementById("error-banner");
 
     function showErr(msg) {
       document.getElementById("error-msg").textContent = msg;
       errB.classList.add("show");
-      errB.scrollIntoView({ behavior: "smooth", block: "nearest" }); // mobile fix
+      errB.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     function hideErr() {
@@ -302,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
         : "Create Account →";
     }
 
-    // ── Signup handler ────────────────────────────────────────
+    // ── Signup submit handler ───────────────────────────────
     document.getElementById("signup-form").addEventListener("submit", async () => {
       const username = document.getElementById("username").value.trim();
       const email    = document.getElementById("email").value.trim();
@@ -321,19 +316,17 @@ document.addEventListener("DOMContentLoaded", () => {
       setLoading(true);
 
       try {
-        // ── AUTH.signup handles all Firebase calls with timeouts ──
         const res = await AUTH.signup(username, email, pw, role, schoolId);
 
         if (!res.ok) {
           showErr(res.msg);
-          return; // finally{} will reset loading
+          return; // finally{} resets button
         }
 
-        // ── Optional plan upgrade (non-blocking on failure) ───
+        // Optional premium upgrade
         if (plan === "premium") {
           const upg = await AUTH.upgradePlan(res.user.uid, "premium");
           if (!upg.ok) {
-            // Don't block redirect — show a soft warning after dashboard loads
             sessionStorage.setItem(
               "shuttlestepz_notice",
               "Premium upgrade didn't complete. Please retry in Settings."
@@ -341,16 +334,14 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // ── Redirect on success ───────────────────────────────
-        console.log("[signup form] ✔ Redirecting to dashboard");
+        console.log("[signup] ✔ Success — redirecting to dashboard");
         window.location.href = "dashboard.html";
 
       } catch (err) {
-        // Catches anything AUTH.signup didn't handle (shouldn't happen, but safety net)
-        console.error("[signup form] Unexpected error:", err);
+        console.error("[signup] Unexpected error:", err);
         showErr("An unexpected error occurred. Please try again.");
       } finally {
-        // ALWAYS reset button — this is the main bug fix for the hang
+        // ALWAYS resets button — this is the core hang fix
         setLoading(false);
       }
     });
