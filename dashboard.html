@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Shuttlestepz</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<div class="bg-noise"></div>
+<div class="bg-radial"></div>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-top">
+    <a href="index.html" class="brand">
+      <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="var(--accent)"/>
+        <path d="M17 7 C11 12 9 17 11 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M17 7 C23 12 25 17 23 23" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="17" y1="23" x2="17" y2="31" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <span>Shuttlestepz</span>
+    </a>
+
+    <!-- Role badge -->
+    <div class="role-badge" id="role-badge">Student</div>
+
+    <nav class="nav">
+      <a class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </a>
+      <a class="nav-item" data-tab="train" onclick="switchTab('train')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Train
+      </a>
+      <a class="nav-item" data-tab="history" onclick="switchTab('history')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+        History
+      </a>
+      <a class="nav-item" data-tab="leaderboard" onclick="switchTab('leaderboard')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+        Leaderboard
+      </a>
+      <!-- Teacher/Coach only -->
+      <a class="nav-item nav-item--role" data-tab="manage" onclick="switchTab('manage')" id="nav-manage">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span id="nav-manage-label">Students</span>
+      </a>
+      <a class="nav-item" data-tab="profile" onclick="switchTab('profile')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a>
+    </nav>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="xp-mini">
+      <div class="xp-mini-top">
+        <span id="sb-xp-label">0 XP</span>
+        <span id="sb-level-label">Lv.1</span>
+      </div>
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" id="sb-xp-fill"></div>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="AUTH.logout()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Log Out
+    </button>
+  </div>
+</aside>
+
+<!-- ═══ MOBILE TOPBAR ═══ -->
+<header class="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="topbar-title" id="topbar-title">Overview</span>
+  <div class="topbar-xp" id="topbar-xp">0 XP</div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main" id="main">
+
+  <!-- ── NOTICE BANNER ── -->
+  <div class="notice-banner" id="notice-banner" style="display:none">
+    <span id="notice-msg"></span>
+    <button onclick="document.getElementById('notice-banner').style.display='none'">✕</button>
+  </div>
+
+  <!-- ════════════════════════════
+       TAB: OVERVIEW
+  ════════════════════════════ -->
+  <section class="tab-panel active" id="tab-overview">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Good <span id="greeting-time">morning</span>, <span id="greeting-name">Athlete</span> 👋</h1>
+        <p class="page-sub">Here's your training snapshot.</p>
+      </div>
+      <button class="btn-train-hero" onclick="switchTab('train')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Start Training
+      </button>
+    </div>
+
+    <!-- XP Card -->
+    <div class="xp-card anim-up">
+      <div class="xp-card-left">
+        <div class="xp-level-ring" id="xp-ring">
+          <svg viewBox="0 0 80 80">
+            <circle class="ring-bg" cx="40" cy="40" r="34"/>
+            <circle class="ring-fill" id="ring-arc" cx="40" cy="40" r="34"
+              stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+          </svg>
+          <div class="ring-label">
+            <div class="ring-lv" id="ring-lv">1</div>
+            <div class="ring-lv-sub">LVL</div>
+          </div>
+        </div>
+        <div class="xp-card-info">
+          <div class="xp-total" id="xp-total">0 XP</div>
+          <div class="xp-next" id="xp-next">0 / 500 to Level 2</div>
+          <div class="xp-bar-track xp-bar-lg">
+            <div class="xp-bar-fill" id="xp-fill-lg"></div>
+          </div>
+        </div>
+      </div>
+      <div class="xp-card-badges">
+        <div class="badge-item" id="badge-sessions">
+          <div class="badge-val" id="stat-sessions">0</div>
+          <div class="badge-lbl">Sessions</div>
+        </div>
+        <div class="badge-item">
+          <div class="badge-val" id="stat-streak">0🔥</div>
+          <div class="badge-lbl">Day Streak</div>
+        </div>
+        <div class="badge-item">
+          <div class="badge-val" id="stat-rank">#—</div>
+          <div class="badge-lbl">Global Rank</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Tips -->
+    <div class="section-title">⚡ AI Coaching Tips</div>
+    <div class="tips-grid" id="tips-grid">
+      <div class="tip-card anim-up anim-d1">
+        <div class="tip-icon">🦶</div>
+        <div class="tip-text">Keep your weight on the balls of your feet for faster lateral movement.</div>
+      </div>
+      <div class="tip-card anim-up anim-d2">
+        <div class="tip-icon">👁️</div>
+        <div class="tip-text">Watch the shuttle from your opponent's racket — not their body.</div>
+      </div>
+      <div class="tip-card anim-up anim-d3">
+        <div class="tip-icon">💨</div>
+        <div class="tip-text">Return to center after every shot to reduce your opponent's angles.</div>
+      </div>
+    </div>
+
+    <!-- Recent Sessions -->
+    <div class="section-title">🕐 Recent Sessions</div>
+    <div class="sessions-list" id="overview-sessions">
+      <div class="empty-state" id="sessions-empty">
+        <div class="empty-icon">🏸</div>
+        <div>No sessions yet. Hit <strong>Start Training</strong> to earn your first XP!</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════
+       TAB: TRAIN
+  ════════════════════════════ -->
+  <section class="tab-panel" id="tab-train">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Start Training</h1>
+        <p class="page-sub">Choose a drill and let the AI coach guide you.</p>
+      </div>
+    </div>
+
+    <div class="drill-grid">
+      <div class="drill-card anim-up" onclick="startDrill('footwork')">
+        <div class="drill-icon">🦶</div>
+        <div class="drill-name">Footwork Drill</div>
+        <div class="drill-desc">React to corner calls. Builds speed & agility.</div>
+        <div class="drill-meta"><span class="drill-xp">+20 XP / session</span><span class="drill-diff diff-easy">Beginner</span></div>
+      </div>
+      <div class="drill-card anim-up anim-d1" onclick="startDrill('shadow')">
+        <div class="drill-icon">👤</div>
+        <div class="drill-name">Shadow Badminton</div>
+        <div class="drill-desc">Mirror AI movement patterns without a shuttle.</div>
+        <div class="drill-meta"><span class="drill-xp">+30 XP / session</span><span class="drill-diff diff-med">Intermediate</span></div>
+      </div>
+      <div class="drill-card anim-up anim-d2" onclick="startDrill('reflex')">
+        <div class="drill-icon">⚡</div>
+        <div class="drill-name">Reflex Challenge</div>
+        <div class="drill-desc">Random fast-fire corner prompts. No mercy.</div>
+        <div class="drill-meta"><span class="drill-xp">+50 XP / session</span><span class="drill-diff diff-hard">Advanced</span></div>
+      </div>
+      <div class="drill-card anim-up anim-d3" onclick="startDrill('endurance')">
+        <div class="drill-icon">🏃</div>
+        <div class="drill-name">Endurance Run</div>
+        <div class="drill-desc">5-minute non-stop movement challenge.</div>
+        <div class="drill-meta"><span class="drill-xp">+60 XP / session</span><span class="drill-diff diff-hard">Advanced</span></div>
+      </div>
+    </div>
+
+    <!-- Camera preview placeholder -->
+    <div class="camera-box" id="camera-box">
+      <div class="camera-inner">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <div class="camera-label">Select a drill above to activate camera</div>
+        <div class="camera-sub">AI runs fully in your browser — no video is stored.</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════
+       TAB: HISTORY
+  ════════════════════════════ -->
+  <section class="tab-panel" id="tab-history">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Session History</h1>
+        <p class="page-sub">All your training records.</p>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card anim-up">
+        <div class="stat-val" id="h-total-sessions">0</div>
+        <div class="stat-lbl">Total Sessions</div>
+      </div>
+      <div class="stat-card anim-up anim-d1">
+        <div class="stat-val" id="h-total-xp">0</div>
+        <div class="stat-lbl">Total XP Earned</div>
+      </div>
+      <div class="stat-card anim-up anim-d2">
+        <div class="stat-val" id="h-best-streak">0🔥</div>
+        <div class="stat-lbl">Best Streak</div>
+      </div>
+      <div class="stat-card anim-up anim-d3">
+        <div class="stat-val" id="h-avg-score">—</div>
+        <div class="stat-lbl">Avg Score</div>
+      </div>
+    </div>
+
+    <div class="sessions-list" id="history-sessions">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div>No sessions recorded yet. Complete a drill to see your history here.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       TAB: LEADERBOARD
+  ════════════════════════════ -->
+  <section class="tab-panel" id="tab-leaderboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Leaderboard</h1>
+        <p class="page-sub">Global rankings by XP.</p>
+      </div>
+    </div>
+
+    <div class="lb-your-rank anim-up" id="lb-your-rank">
+      <div class="lb-rank-num" id="lb-rank-num">#—</div>
+      <div class="lb-rank-info">
+        <div class="lb-rank-name" id="lb-rank-name">You</div>
+        <div class="lb-rank-xp" id="lb-rank-xp">0 XP</div>
+      </div>
+      <div class="lb-rank-badge">Your Rank</div>
+    </div>
+
+    <div class="lb-list" id="lb-list">
+      <div class="lb-loading">Loading leaderboard…</div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       TAB: MANAGE (Teacher/Coach)
+  ════════════════════════════ -->
+  <section class="tab-panel" id="tab-manage">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="manage-title">Manage Students</h1>
+        <p class="page-sub" id="manage-sub">Students linked to your school/club code.</p>
+      </div>
+    </div>
+
+    <div class="manage-code-card anim-up" id="manage-code-card">
+      <div class="manage-code-label">Your School / Club Code</div>
+      <div class="manage-code" id="manage-code">—</div>
+      <div class="manage-code-hint">Share this code with students during signup.</div>
+    </div>
+
+    <div class="sessions-list" id="manage-list">
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <div>No students linked yet. Share your school code to get started.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════
+       TAB: PROFILE
+  ════════════════════════════ -->
+  <section class="tab-panel" id="tab-profile">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Profile & Settings</h1>
+        <p class="page-sub">Manage your account.</p>
+      </div>
+    </div>
+
+    <div class="profile-card anim-up">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+      <div class="profile-info">
+        <div class="profile-name" id="profile-name">—</div>
+        <div class="profile-email" id="profile-email">—</div>
+        <div class="profile-role-pill" id="profile-role-pill">Student</div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-label">Account</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-title">Username</div>
+          <div class="settings-row-val" id="settings-username">—</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-title">Email</div>
+          <div class="settings-row-val" id="settings-email">—</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-title">Plan</div>
+          <div class="settings-row-val" id="settings-plan">Free</div>
+        </div>
+        <button class="btn-upgrade" id="btn-upgrade" onclick="upgradeToPremium()">Upgrade ⭐</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-label">Danger Zone</div>
+      <div class="settings-row">
+        <div class="settings-row-left">
+          <div class="settings-row-title">Log out of all devices</div>
+          <div class="settings-row-val">Ends your current session</div>
+        </div>
+        <button class="btn-danger" onclick="AUTH.logout()">Log Out</button>
+      </div>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
+<script type="module" src="/Badminton-AI-trainer_V2/js/dashboard.js"></script>
+
+</body>
+</html>
