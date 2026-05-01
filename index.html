@@ -1,69 +1,944 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shuttlestepz</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shuttlestepz — AI Badminton Trainer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    /* ── Mirror dashboard variables ── */
+    :root {
+      --bg:          #0a0d0f;
+      --bg-2:        #111518;
+      --bg-3:        #181d21;
+      --border:      rgba(255,255,255,.07);
+      --border-2:    rgba(255,255,255,.12);
+      --border-3:    rgba(57,224,122,.35);
+      --accent:      #39e07a;
+      --accent-dim:  rgba(57,224,122,.12);
+      --accent-glow: rgba(57,224,122,.35);
+      --text:        #e8ede9;
+      --text-2:      #8a9990;
+      --text-3:      #4a5550;
+      --danger:      #e05c5c;
+      --warn:        #e0b43c;
+      --radius:      12px;
+      --radius-lg:   18px;
+      --trans:       .18s cubic-bezier(.4,0,.2,1);
+      --font-display: 'Syne', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+      --font-body:    'DM Sans', sans-serif;
+    }
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="css/base.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/landing.css">
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
 
-    <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Background layers ── */
+    .bg-noise {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      opacity: .035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+    .bg-radial {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 60% at 15% 10%, rgba(57,224,122,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 85% 85%, rgba(57,224,122,.04) 0%, transparent 60%);
+    }
+    .bg-lines {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(57,224,122,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(57,224,122,.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ════════════════════════
+       NAVBAR
+    ════════════════════════ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px;
+      background: rgba(10,13,15,.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: var(--text);
+      font-family: var(--font-display);
+      font-size: 16px; font-weight: 700;
+    }
+    .nav-brand svg { flex-shrink: 0; }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .nav-links a {
+      color: var(--text-2); text-decoration: none;
+      font-size: 13.5px; font-weight: 500;
+      padding: 7px 14px; border-radius: 8px;
+      transition: color var(--trans), background var(--trans);
+    }
+    .nav-links a:hover { color: var(--text); background: var(--bg-3); }
+    .nav-links .nav-cta {
+      background: var(--accent); color: #0a0d0f;
+      font-weight: 700; margin-left: 4px;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .nav-links .nav-cta:hover {
+      background: #50e88a; color: #0a0d0f;
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+
+    /* ════════════════════════
+       HERO
+    ════════════════════════ */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: 100px 40px 60px;
+      max-width: 1200px; margin: 0 auto;
+      gap: 60px;
+    }
+
+    .hero-left { flex: 1; min-width: 0; }
+
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 10px; font-weight: 500; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(57,224,122,.25);
+      border-radius: 20px; padding: 5px 14px;
+      margin-bottom: 24px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 1.6s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .4; transform: scale(.7); }
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 5.5vw, 68px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: var(--text);
+      margin-bottom: 22px;
+    }
+    .hero-title .g {
+      color: var(--accent);
+      text-shadow: 0 0 40px rgba(57,224,122,.4);
+    }
+
+    .hero-sub {
+      font-size: 16px; color: var(--text-2);
+      line-height: 1.7; max-width: 480px;
+      margin-bottom: 36px;
+    }
+
+    .hero-actions {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .btn-hero-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: #0a0d0f;
+      font-family: var(--font-display);
+      font-size: 14px; font-weight: 700; letter-spacing: .5px;
+      border: none; border-radius: var(--radius);
+      padding: 14px 28px; cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 0 28px var(--accent-glow);
+      transition: all var(--trans);
+    }
+    .btn-hero-primary:hover {
+      background: #50e88a;
+      box-shadow: 0 0 40px var(--accent-glow);
+      transform: translateY(-2px);
+    }
+    .btn-hero-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent; color: var(--text-2);
+      font-family: var(--font-display);
+      font-size: 14px; font-weight: 600; letter-spacing: .5px;
+      border: 1px solid var(--border-2); border-radius: var(--radius);
+      padding: 13px 24px; cursor: pointer;
+      text-decoration: none;
+      transition: all var(--trans);
+    }
+    .btn-hero-secondary:hover {
+      color: var(--text); border-color: var(--border-3);
+      background: var(--accent-dim);
+    }
+
+    /* Hero mini stats */
+    .hero-stats {
+      display: flex; gap: 28px; flex-wrap: wrap;
+    }
+    .hero-stat { }
+    .hero-stat-val {
+      font-family: var(--font-display);
+      font-size: 22px; font-weight: 800;
+      color: var(--accent); letter-spacing: -1px;
+    }
+    .hero-stat-lbl {
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--text-3); margin-top: 2px;
+    }
+
+    /* Hero right — live card */
+    .hero-right {
+      flex: 0 0 420px;
+      position: relative;
+    }
+    .hero-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative; overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 220px; height: 220px;
+      background: radial-gradient(circle, rgba(57,224,122,.1), transparent 70%);
+      border-radius: 50%; pointer-events: none;
+    }
+    .hero-card-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .hero-card-title {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 2px;
+      color: var(--text-3); text-transform: uppercase;
+    }
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--font-mono); font-size: 10px;
+      letter-spacing: 1.5px; color: var(--accent);
+      border: 1px solid rgba(57,224,122,.25);
+      border-radius: 20px; padding: 3px 10px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 1.6s ease infinite;
+    }
+
+    /* Fake court visualizer */
+    .court-viz {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      height: 160px;
+      position: relative; overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .court-line {
+      position: absolute;
+      background: rgba(57,224,122,.15);
+    }
+    .court-line.h { left: 0; right: 0; height: 1px; }
+    .court-line.v { top: 0; bottom: 0; width: 1px; }
+    .court-line.h1 { top: 50%; }
+    .court-line.v1 { left: 33.3%; }
+    .court-line.v2 { left: 66.6%; }
+    .court-border {
+      position: absolute; inset: 8px;
+      border: 1px solid rgba(57,224,122,.2);
+      border-radius: 4px;
+    }
+    .court-player {
+      position: absolute;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+      transform: translate(-50%, -50%);
+      transition: left .8s cubic-bezier(.4,0,.2,1), top .8s cubic-bezier(.4,0,.2,1);
+    }
+    .court-zone-indicator {
+      position: absolute; bottom: 8px; right: 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--accent); letter-spacing: 1px;
+    }
+
+    /* Metrics row */
+    .hero-metrics {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px; margin-bottom: 18px;
+    }
+    .hero-metric {
+      background: var(--bg-3);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px;
+      text-align: center;
+    }
+    .hero-metric-val {
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 800;
+      color: var(--text); letter-spacing: -.5px;
+    }
+    .hero-metric-lbl {
+      font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-3); margin-top: 3px;
+    }
+
+    .hero-card-footer {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--text-2);
+    }
+    .hero-card-footer svg { color: var(--accent); flex-shrink: 0; }
+
+    /* ════════════════════════
+       SECTION SHARED
+    ════════════════════════ */
+    section { position: relative; z-index: 1; }
+    .section-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 80px 40px;
+    }
+    .section-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 3.5vw, 42px);
+      font-weight: 800; letter-spacing: -1.5px;
+      color: var(--text); line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .section-sub {
+      font-size: 15px; color: var(--text-2);
+      line-height: 1.7; max-width: 520px;
+      margin-bottom: 48px;
+    }
+
+    /* ════════════════════════
+       FEATURES
+    ════════════════════════ */
+    .features-section {
+      border-top: 1px solid var(--border);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      transition: border-color var(--trans), transform var(--trans), box-shadow var(--trans);
+      position: relative; overflow: hidden;
+    }
+    .feature-card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(57,224,122,.05), transparent);
+      opacity: 0; transition: opacity var(--trans);
+    }
+    .feature-card:hover {
+      border-color: rgba(57,224,122,.3);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.3), 0 0 20px rgba(57,224,122,.06);
+    }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(57,224,122,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 18px;
+    }
+    .feature-name {
+      font-family: var(--font-display);
+      font-size: 16px; font-weight: 700;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .feature-desc {
+      font-size: 13.5px; color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* ════════════════════════
+       HOW IT WORKS
+    ════════════════════════ */
+    .how-section {
+      border-top: 1px solid var(--border);
+      background: linear-gradient(180deg, transparent, rgba(57,224,122,.02) 50%, transparent);
+    }
+    .how-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; position: relative;
+    }
+    .how-grid::before {
+      content: '';
+      position: absolute; top: 30px; left: 10%; right: 10%;
+      height: 1px; background: var(--border-2);
+      z-index: 0;
+    }
+    .how-step {
+      text-align: center; position: relative; z-index: 1;
+    }
+    .how-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--bg-2);
+      border: 1px solid var(--border-3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 800; color: var(--accent);
+      margin: 0 auto 18px;
+      box-shadow: 0 0 20px rgba(57,224,122,.15);
+    }
+    .how-title {
+      font-family: var(--font-display);
+      font-size: 14px; font-weight: 700;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .how-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.6; }
+
+    /* ════════════════════════
+       STATS BAND
+    ════════════════════════ */
+    .stats-band {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-2);
+    }
+    .stats-band-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 40px;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .band-stat {
+      text-align: center; padding: 8px 16px;
+      border-right: 1px solid var(--border);
+    }
+    .band-stat:last-child { border-right: none; }
+    .band-stat-val {
+      font-family: var(--font-display);
+      font-size: 36px; font-weight: 900;
+      color: var(--accent); letter-spacing: -2px;
+    }
+    .band-stat-lbl {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .8px;
+      color: var(--text-3); margin-top: 4px;
+    }
+
+    /* ════════════════════════
+       PLANS
+    ════════════════════════ */
+    .plans-section { border-top: 1px solid var(--border); }
+    .plans-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 20px; max-width: 720px;
+    }
+    .plan-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      position: relative; overflow: hidden;
+      transition: border-color var(--trans), transform var(--trans);
+    }
+    .plan-card.popular {
+      border-color: rgba(57,224,122,.35);
+      box-shadow: 0 0 40px rgba(57,224,122,.08);
+    }
+    .plan-card:hover { transform: translateY(-3px); }
+    .plan-popular-badge {
+      position: absolute; top: 16px; right: 16px;
+      font-family: var(--font-mono); font-size: 9px;
+      font-weight: 500; letter-spacing: 1.5px;
+      text-transform: uppercase; color: #0a0d0f;
+      background: var(--accent); border-radius: 20px;
+      padding: 3px 10px;
+    }
+    .plan-name {
+      font-family: var(--font-display);
+      font-size: 18px; font-weight: 800;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .plan-price {
+      font-family: var(--font-display);
+      font-size: 32px; font-weight: 900;
+      color: var(--accent); letter-spacing: -1px;
+      margin-bottom: 4px;
+    }
+    .plan-price span { font-size: 14px; font-weight: 400; color: var(--text-2); }
+    .plan-desc { font-size: 12.5px; color: var(--text-2); margin-bottom: 20px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+    .plan-features li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-2);
+    }
+    .plan-features li::before {
+      content: '✓';
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent-dim);
+      color: var(--accent); font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-plan {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 12px;
+      border-radius: var(--radius); border: none;
+      font-family: var(--font-display);
+      font-size: 13px; font-weight: 700; letter-spacing: .5px;
+      cursor: pointer; text-decoration: none;
+      transition: all var(--trans);
+    }
+    .btn-plan-free {
+      background: transparent; color: var(--text-2);
+      border: 1px solid var(--border-2);
+    }
+    .btn-plan-free:hover { color: var(--text); border-color: var(--border-3); background: var(--accent-dim); }
+    .btn-plan-premium {
+      background: var(--accent); color: #0a0d0f;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .btn-plan-premium:hover { background: #50e88a; box-shadow: 0 0 30px var(--accent-glow); }
+
+    /* ════════════════════════
+       CTA BANNER
+    ════════════════════════ */
+    .cta-section { border-top: 1px solid var(--border); }
+    .cta-box {
+      background: linear-gradient(135deg, rgba(57,224,122,.1), rgba(57,224,122,.03));
+      border: 1px solid rgba(57,224,122,.25);
+      border-radius: var(--radius-lg);
+      padding: 60px 48px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute; top: -80px; left: 50%;
+      transform: translateX(-50%);
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(57,224,122,.12), transparent 70%);
+      pointer-events: none;
+    }
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 800; letter-spacing: -1.5px;
+      color: var(--text); margin-bottom: 14px;
+      position: relative;
+    }
+    .cta-sub {
+      font-size: 15px; color: var(--text-2);
+      margin-bottom: 32px; position: relative;
+    }
+    .cta-actions {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; flex-wrap: wrap;
+      position: relative;
+    }
+
+    /* ════════════════════════
+       FOOTER
+    ════════════════════════ */
+    .footer {
+      border-top: 1px solid var(--border);
+      position: relative; z-index: 1;
+    }
+    .footer-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 32px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--font-display);
+      font-size: 14px; font-weight: 700;
+      color: var(--text-2); text-decoration: none;
+    }
+    .footer-copy {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-3); letter-spacing: .5px;
+    }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      font-size: 12.5px; color: var(--text-3);
+      text-decoration: none; transition: color var(--trans);
+    }
+    .footer-links a:hover { color: var(--text-2); }
+
+    /* ════════════════════════
+       ANIMATIONS
+    ════════════════════════ */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim-up { animation: fadeUp .5s cubic-bezier(.4,0,.2,1) both; }
+    .anim-d1 { animation-delay: .1s; }
+    .anim-d2 { animation-delay: .2s; }
+    .anim-d3 { animation-delay: .3s; }
+    .anim-d4 { animation-delay: .4s; }
+
+    /* ════════════════════════
+       RESPONSIVE
+    ════════════════════════ */
+    @media (max-width: 960px) {
+      .hero { flex-direction: column; padding-top: 100px; gap: 40px; }
+      .hero-right { flex: none; width: 100%; max-width: 480px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .how-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+      .how-grid::before { display: none; }
+      .stats-band-inner { grid-template-columns: 1fr 1fr; }
+      .band-stat { border-right: none; border-bottom: 1px solid var(--border); padding: 20px; }
+      .band-stat:last-child { border-bottom: none; }
+    }
+    @media (max-width: 640px) {
+      .navbar { padding: 0 20px; }
+      .section-inner { padding: 60px 20px; }
+      .hero { padding: 90px 20px 40px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .plans-grid { grid-template-columns: 1fr; }
+      .cta-box { padding: 40px 24px; }
+      .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .how-grid { grid-template-columns: 1fr; }
+      .stats-band-inner { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
 </head>
-
 <body>
 
-    <!-- 🔥 NAVBAR -->
-    <nav class="navbar">
-        <h1 class="logo">ShuttleStepz</h1>
-        <div class="nav-links">
-            <a href="#">Home</a>
-            <a href="#">Features</a>
-            <a href="login.html">Login</a>
-        </div>
-    </nav>
+  <div class="bg-noise"></div>
+  <div class="bg-radial"></div>
+  <div class="bg-lines"></div>
 
-    <!-- 🚀 HERO SECTION -->
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Train Smarter with AI 🏸</h1>
-            <p>Improve your badminton footwork, reaction time and accuracy with real-time feedback.</p>
-            
-            <a href="trainer.html" class="cta-btn">Start Training</a>
-        </div>
+  <!-- ════ NAVBAR ════ -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+        <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
+        <circle cx="17" cy="7" r="3" fill="#39e07a"/>
+        <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Shuttlestepz
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How It Works</a>
+      <a href="#plans">Plans</a>
+      <a href="login.html">Log In</a>
+      <a href="signup.html" class="nav-cta">Get Started →</a>
+    </div>
+  </nav>
 
-        <div class="hero-image">
-            <img src="assets/demo-thumb.jpg" alt="demo">
+  <!-- ════ HERO ════ -->
+  <section>
+    <div class="hero">
+      <div class="hero-left">
+        <div class="hero-eyebrow anim-up">AI-Powered · Real-Time · Free to Start</div>
+        <h1 class="hero-title anim-up anim-d1">
+          Train smarter.<br>Move <span class="g">faster.</span><br>Win bigger.
+        </h1>
+        <p class="hero-sub anim-up anim-d2">
+          Real-time AI pose detection gives you the coaching feedback of a pro trainer — right in your browser. No equipment. No downloads.
+        </p>
+        <div class="hero-actions anim-up anim-d3">
+          <a href="signup.html" class="btn-hero-primary">Start Training Free →</a>
+          <a href="login.html" class="btn-hero-secondary">Log In</a>
         </div>
-    </section>
+        <div class="hero-stats anim-up anim-d4">
+          <div class="hero-stat">
+            <div class="hero-stat-val">60fps</div>
+            <div class="hero-stat-lbl">AI Tracking</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">±50ms</div>
+            <div class="hero-stat-lbl">Precision</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">8</div>
+            <div class="hero-stat-lbl">Court Zones</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val">$0</div>
+            <div class="hero-stat-lbl">To Start</div>
+          </div>
+        </div>
+      </div>
 
-    <!-- ⚡ FEATURES -->
-    <section class="features">
+      <div class="hero-right anim-up anim-d2">
+        <div class="hero-card">
+          <div class="hero-card-top">
+            <span class="hero-card-title">Live Session</span>
+            <span class="live-badge"><span class="live-dot"></span>AI Active</span>
+          </div>
+          <div class="court-viz" id="courtViz">
+            <div class="court-border"></div>
+            <div class="court-line h h1"></div>
+            <div class="court-line v v1"></div>
+            <div class="court-line v v2"></div>
+            <div class="court-player" id="courtPlayer" style="left:50%;top:50%"></div>
+            <div class="court-zone-indicator" id="zoneLabel">ZONE 5</div>
+          </div>
+          <div class="hero-metrics">
+            <div class="hero-metric">
+              <div class="hero-metric-val" id="reactionVal">248</div>
+              <div class="hero-metric-lbl">React ms</div>
+            </div>
+            <div class="hero-metric">
+              <div class="hero-metric-val" id="accuracyVal">94%</div>
+              <div class="hero-metric-lbl">Accuracy</div>
+            </div>
+            <div class="hero-metric">
+              <div class="hero-metric-val" id="xpVal">+12 XP</div>
+              <div class="hero-metric-lbl">Earned</div>
+            </div>
+          </div>
+          <div class="hero-card-footer">
+            <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" stroke="#39e07a" stroke-width="1.5"/><path d="M8 5v3.5M8 11v.5" stroke="#39e07a" stroke-width="1.5" stroke-linecap="round"/></svg>
+            No video stored · AI runs locally in your browser
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ STATS BAND ════ -->
+  <div class="stats-band">
+    <div class="stats-band-inner">
+      <div class="band-stat">
+        <div class="band-stat-val">10K+</div>
+        <div class="band-stat-lbl">Sessions Played</div>
+      </div>
+      <div class="band-stat">
+        <div class="band-stat-val">8</div>
+        <div class="band-stat-lbl">Skill Levels</div>
+      </div>
+      <div class="band-stat">
+        <div class="band-stat-val">60fps</div>
+        <div class="band-stat-lbl">AI Tracking</div>
+      </div>
+      <div class="band-stat">
+        <div class="band-stat-val">Free</div>
+        <div class="band-stat-lbl">Forever Plan</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ FEATURES ════ -->
+  <section id="features">
+    <div class="section-inner">
+      <div class="section-eyebrow">What You Get</div>
+      <h2 class="section-title">Everything a pro coach gives you</h2>
+      <p class="section-sub">Built on real-time computer vision — no wearables, no special equipment, just your phone or laptop camera.</p>
+      <div class="features-grid">
         <div class="feature-card">
-            <h2>⚡ Faster Reactions</h2>
-            <p>Measure and improve your reaction time instantly.</p>
+          <div class="feature-icon">⚡</div>
+          <div class="feature-name">Reaction Tracking</div>
+          <div class="feature-desc">Millisecond-precise reaction time measurement across all 8 court zones. Know exactly where you're slow.</div>
         </div>
-
         <div class="feature-card">
-            <h2>🎯 Accuracy Tracking</h2>
-            <p>Know your weak zones and improve footwork.</p>
+          <div class="feature-icon">🤖</div>
+          <div class="feature-name">AI Pose Detection</div>
+          <div class="feature-desc">Real-time body pose analysis at 60fps. The AI sees your movement and corrects your footwork live.</div>
         </div>
-
         <div class="feature-card">
-            <h2>📊 Smart Feedback</h2>
-            <p>AI gives insights like a real coach.</p>
+          <div class="feature-icon">🎙️</div>
+          <div class="feature-name">Voice Coaching</div>
+          <div class="feature-desc">Audio prompts guide your session hands-free. React to voice cues exactly like in a real training drill.</div>
         </div>
-    </section>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <div class="feature-name">Session Analytics</div>
+          <div class="feature-desc">Deep stats after every session — accuracy by zone, average reaction, XP earned, and trend over time.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <div class="feature-name">XP & Leaderboard</div>
+          <div class="feature-desc">Earn XP on every session, level up, and compete with players globally on the ranked leaderboard.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-name">100% Private</div>
+          <div class="feature-desc">AI runs entirely in your browser. No video is recorded, stored, or sent anywhere. Your privacy is guaranteed.</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <!-- 🔥 CTA -->
-    <section class="cta">
-        <h2>Start your training today</h2>
-        <a href="signup.html" class="cta-btn">Get Started</a>
-    </section>
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
+  <!-- ════ HOW IT WORKS ════ -->
+  <section id="how" class="how-section">
+    <div class="section-inner">
+      <div class="section-eyebrow">Getting Started</div>
+      <h2 class="section-title">Up and training in 60 seconds</h2>
+      <p class="section-sub">No app download, no equipment to buy, no coach to book. Just open the browser and go.</p>
+      <div class="how-grid">
+        <div class="how-step">
+          <div class="how-num">1</div>
+          <div class="how-title">Create your account</div>
+          <div class="how-desc">Sign up free in 30 seconds. No credit card needed for the free plan.</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">2</div>
+          <div class="how-title">Allow camera access</div>
+          <div class="how-desc">Grant camera permission. No video is stored — AI runs locally in your browser.</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">3</div>
+          <div class="how-title">Position yourself</div>
+          <div class="how-desc">Stand 1.5–2m from camera. Full body visible. AI calibrates your position automatically.</div>
+        </div>
+        <div class="how-step">
+          <div class="how-num">4</div>
+          <div class="how-title">Train and improve</div>
+          <div class="how-desc">React to voice prompts, earn XP, and track your progress session by session.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ PLANS ════ -->
+  <section id="plans" class="plans-section">
+    <div class="section-inner">
+      <div class="section-eyebrow">Pricing</div>
+      <h2 class="section-title">Simple, honest pricing</h2>
+      <p class="section-sub">Start free, upgrade when you're ready. No hidden fees.</p>
+      <div class="plans-grid">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0 <span>/ forever</span></div>
+          <div class="plan-desc">Everything you need to get started.</div>
+          <ul class="plan-features">
+            <li>5 training sessions per day</li>
+            <li>All 8 court zones</li>
+            <li>Basic session stats</li>
+            <li>XP & level system</li>
+            <li>Global leaderboard</li>
+          </ul>
+          <a href="signup.html" class="btn-plan btn-plan-free">Get Started Free</a>
+        </div>
+        <div class="plan-card popular">
+          <div class="plan-popular-badge">POPULAR</div>
+          <div class="plan-name">⭐ Premium</div>
+          <div class="plan-price">$7 <span>/ month</span></div>
+          <div class="plan-desc">For serious players who want every edge.</div>
+          <ul class="plan-features">
+            <li>Unlimited sessions</li>
+            <li>Advanced analytics dashboard</li>
+            <li>Priority leaderboard placement</li>
+            <li>All drills & difficulty levels</li>
+            <li>Early access to new features</li>
+          </ul>
+          <a href="signup.html" class="btn-plan btn-plan-premium">Start Premium →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ CTA ════ -->
+  <section class="cta-section">
+    <div class="section-inner">
+      <div class="cta-box">
+        <h2 class="cta-title">Ready to train like a pro?</h2>
+        <p class="cta-sub">Join thousands of players improving their game with AI coaching. Free forever.</p>
+        <div class="cta-actions">
+          <a href="signup.html" class="btn-hero-primary">Create Free Account →</a>
+          <a href="login.html" class="btn-hero-secondary">Already have an account</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ FOOTER ════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <a href="index.html" class="footer-brand">
+        <svg width="20" height="20" viewBox="0 0 34 34" fill="none">
+          <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
+          <circle cx="17" cy="7" r="3" fill="#39e07a"/>
+          <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        Shuttlestepz
+      </a>
+      <span class="footer-copy">© 2025 Shuttlestepz. All rights reserved.</span>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="login.html">Login</a>
+        <a href="signup.html">Sign Up</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Animated court player -->
+  <script>
+    const zones = [
+      { left: '16%', top: '25%', label: 'ZONE 1' },
+      { left: '50%', top: '25%', label: 'ZONE 2' },
+      { left: '84%', top: '25%', label: 'ZONE 3' },
+      { left: '16%', top: '50%', label: 'ZONE 4' },
+      { left: '50%', top: '50%', label: 'ZONE 5' },
+      { left: '84%', top: '50%', label: 'ZONE 6' },
+      { left: '16%', top: '78%', label: 'ZONE 7' },
+      { left: '50%', top: '78%', label: 'ZONE 8' },
+      { left: '84%', top: '78%', label: 'ZONE 9' },
+    ];
+    const reactions = [212, 248, 195, 267, 231, 189, 244, 203];
+    const accuracies = ['91%','94%','88%','96%','92%','97%','89%','95%'];
+    const xpVals = ['+10 XP','+12 XP','+8 XP','+15 XP','+11 XP','+14 XP','+9 XP','+13 XP'];
+    let idx = 0;
+
+    function animatePlayer() {
+      idx = (idx + 1) % zones.length;
+      const z = zones[idx];
+      document.getElementById('courtPlayer').style.left = z.left;
+      document.getElementById('courtPlayer').style.top = z.top;
+      document.getElementById('zoneLabel').textContent = z.label;
+      document.getElementById('reactionVal').textContent = reactions[idx % reactions.length];
+      document.getElementById('accuracyVal').textContent = accuracies[idx % accuracies.length];
+      document.getElementById('xpVal').textContent = xpVals[idx % xpVals.length];
+    }
+    setInterval(animatePlayer, 1800);
+  </script>
+
+  <script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
 </body>
 </html>
