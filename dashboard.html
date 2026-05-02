@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Shuttlestepz</title>
-<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="style.css">
 <style>
 #dashboard { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
 
@@ -493,9 +493,12 @@
   const chartCanvas = document.getElementById('perf-chart')
   const history     = stats.history || []
 
-  if (history.length < 2) {
+  if (history.length < 1) {
     chartCanvas.style.display = 'none'
     document.getElementById('chart-empty').style.display = 'block'
+  } else if (history.length === 1) {
+    // Single point — draw a dot with label
+    drawChart(chartCanvas, history.map(s => s.score).reverse())
   } else {
     drawChart(chartCanvas, history.map(s => s.score).reverse())
   }
@@ -517,6 +520,23 @@
     for (let i = 0; i <= 3; i++) {
       const y = pad + (i / 3) * (h - pad * 2)
       c.beginPath(); c.moveTo(pad, y); c.lineTo(w - pad, y); c.stroke()
+    }
+
+    // Single point — draw centred dot + label
+    if (data.length === 1) {
+      const cx = w / 2, cy = h / 2
+      c.beginPath()
+      c.arc(cx, cy, 6, 0, Math.PI * 2)
+      c.fillStyle = 'var(--accent)'
+      c.fill()
+      c.fillStyle = 'rgba(56,210,90,0.7)'
+      c.font = "9px 'DM Mono', monospace"
+      c.textAlign = 'center'
+      c.fillText(data[0], cx, cy - 12)
+      c.fillStyle = 'rgba(56,210,90,0.3)'
+      c.font = "9px 'DM Mono', monospace"
+      c.fillText('Complete more sessions to see your trend', cx, h - 6)
+      return
     }
 
     const pts = data.map((v, i) => ({
@@ -543,13 +563,12 @@
     pts.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y))
     c.stroke()
 
-    // Dots
+    // Dots + labels
     pts.forEach((p, i) => {
       c.beginPath()
       c.arc(p.x, p.y, i === pts.length-1 ? 5 : 3, 0, Math.PI * 2)
       c.fillStyle = i === pts.length-1 ? 'var(--accent)' : 'rgba(56,210,90,0.5)'
       c.fill()
-      // Labels
       c.fillStyle = 'rgba(56,210,90,0.5)'
       c.font = "9px 'DM Mono', monospace"
       c.textAlign = 'center'
@@ -601,9 +620,5 @@
     }
   }
 </script>
-<!-- bottom of dashboard.html, before </body> -->
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
-<script src="js/dashboard.js"></script>
 </body>
 </html>
