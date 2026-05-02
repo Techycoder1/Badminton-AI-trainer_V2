@@ -101,9 +101,9 @@ html, body {
 .hamburger:hover span { background: var(--text); }
 
 /* Hamburger → X animation */
-.sidebar-open .hamburger span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); width: 18px; }
-.sidebar-open .hamburger span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.sidebar-open .hamburger span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); width: 18px; }
+.hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); width: 18px; }
+.hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); width: 18px; }
 
 /* Brand in topbar */
 .topbar-brand {
@@ -180,7 +180,7 @@ html, body {
   will-change: transform;
   overflow: hidden;
 }
-.sidebar-open .sidebar {
+.sidebar.open {
   transform: translateX(0);
   box-shadow: 4px 0 48px rgba(0,0,0,.55);
 }
@@ -286,7 +286,7 @@ html, body {
   z-index: 240; opacity: 0; pointer-events: none;
   transition: opacity .28s;
 }
-.sidebar-open .sidebar-overlay {
+.sidebar-overlay.open {
   opacity: 1; pointer-events: auto;
 }
 
@@ -303,7 +303,7 @@ html, body {
 
 /* Push main when sidebar open on wide screens */
 @media (min-width: 900px) {
-  .sidebar-open .main { margin-left: var(--sidebar-w); }
+  .sidebar.open ~ .main { margin-left: var(--sidebar-w); }
 }
 
 /* ── Notice banner ── */
@@ -1078,13 +1078,19 @@ html, body {
    (dashboard.js handles full logic)
 ───────────────────────────────── */
 
-/* Sidebar toggle */
-function toggleSidebar() {
-  document.body.classList.toggle('sidebar-open');
-}
+/* Sidebar toggle — assigned to window so module scripts cannot shadow it */
+window.toggleSidebar = function() {
+  var sb  = document.getElementById('sidebar');
+  var ov  = document.getElementById('sidebar-overlay');
+  var hb  = document.getElementById('hamburger-btn');
+  var mn  = document.getElementById('main');
+  var isOpen = sb.classList.toggle('open');
+  ov.classList.toggle('open', isOpen);
+  hb.classList.toggle('open', isOpen);
+};
 
-/* Tab switching */
-function switchTab(tab) {
+/* Tab switching — window-assigned */
+window.switchTab = function(tab) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
@@ -1097,13 +1103,11 @@ function switchTab(tab) {
   const lbl = document.getElementById('topbar-label');
   if (lbl) lbl.textContent = labels[tab] || tab;
 
-  // Close sidebar on mobile after nav
-  if (window.innerWidth < 900) {
-    document.body.classList.remove('sidebar-open');
-  }
+  // Always close sidebar when navigating
+  var _sb=document.getElementById('sidebar'); var _ov=document.getElementById('sidebar-overlay'); var _hb=document.getElementById('hamburger-btn'); if(_sb){_sb.classList.remove('open');} if(_ov){_ov.classList.remove('open');} if(_hb){_hb.classList.remove('open');}
 
   if (tab === 'leaderboard') renderLeaderboard();
-}
+};
 
 /* Greeting */
 function setGreeting(name) {
@@ -1214,8 +1218,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<script type="module" src="js/auth.js"></script>
-<script type="module" src="js/dashboard.js"></script>
+<script type="module">
+/* Load auth quietly, then boot dashboard.js logic */
+let AUTH = {};
+try {
+  const mod = await import('./js/auth.js');
+  AUTH = mod.AUTH || mod.default || {};
+  window.AUTH = AUTH;
+} catch(e) { console.warn('[dashboard] auth.js not loaded:', e.message); }
+
+/* doLogout — safe regardless of AUTH shape */
+window.doLogout = function() {
+  try {
+    if (typeof AUTH.logout   === 'function') { AUTH.logout();   return; }
+    if (typeof AUTH.signOut  === 'function') { AUTH.signOut();  return; }
+  } catch(e) {}
+  window.location.href = 'login.html';
+};
+
+/* Sync XP/sessions from AUTH if it exposes them */
+try {
+  const dashMod = await import('./js/dashboard.js');
+} catch(e) { /* dashboard.js is optional — inline JS handles everything */ }
+</script>
 
 </body>
 </html>
