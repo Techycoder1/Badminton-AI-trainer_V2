@@ -8,10 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<!-- TF + MoveNet -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.17.0/dist/tf-core.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.17.0/dist/tf-backend-webgl.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<!-- TF + MoveNet — verified compatible versions (includes converter for loadGraphModel) -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.0/dist/pose-detection.min.js"></script>
 
 <style>
 :root {
@@ -966,15 +965,27 @@ async function loadPoseModel(){
   const ms=document.getElementById('model-status');
   ms.className='err';ms.textContent='Loading MoveNet…';
   try{
-    poseDetector=await poseDetection.createDetector(
-      poseDetection.SupportedModels.MoveNet,
-      {runtime:'tfjs',modelType:poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING}
-    );
+    // Ensure TF backend is fully initialised
+    await tf.setBackend('webgl');
+    await tf.ready();
+    // Try tfjs runtime first; fall back to tfhub if loadGraphModel fails
+    try {
+      poseDetector=await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        {runtime:'tfjs',modelType:'SinglePose.Lightning',enableSmoothing:true}
+      );
+    } catch(e1) {
+      console.warn('[trainer] tfjs runtime failed, trying tfhub…', e1.message);
+      poseDetector=await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet,
+        {runtime:'tfhub',modelType:'SinglePose.Lightning'}
+      );
+    }
     ms.className='ok';ms.textContent='AI ready ✓';
     document.getElementById('pose-badge').textContent='CALIBRATING';
     document.getElementById('pose-badge').classList.add('tracking');
   }catch(err){
-    ms.className='err';ms.textContent='❌ Model failed — check connection';
+    ms.className='err';ms.textContent='❌ Model failed: '+err.message;
     throw err;
   }
 }
