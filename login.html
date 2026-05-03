@@ -54,7 +54,6 @@
           <input class="form-input" type="email" id="email"
             placeholder="you@example.com" autocomplete="email" required>
         </div>
-
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
           <div class="pw-wrap">
@@ -64,9 +63,7 @@
             <button type="button" class="pw-toggle" id="toggle-pw">👁</button>
           </div>
         </div>
-
         <a href="#" class="forgot-link" id="forgot-link">Forgot password?</a>
-
         <button type="submit" class="btn btn-primary btn-full"
           style="padding:15px;font-size:15px" id="btn-login">
           Log In →
@@ -127,14 +124,17 @@
   </div>
 </div>
 
-<script type="module" src="/Badminton-AI-trainer_V2/js/firebase.js"></script>
-<script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
-<script>
-window.addEventListener('load', async () => {
-  await new Promise(r => setTimeout(r, 400))
-  if (window.AUTH) AUTH.requireGuest()
+<!-- ═══ SINGLE module script — no separate firebase.js or auth.js tags needed ═══ -->
+<script type="module">
+  import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
 
-  // Show/hide password
+  window.AUTH = AUTH
+  console.log('[login] ✅ AUTH loaded')
+
+  // Redirect if already logged in
+  AUTH.requireGuest()
+
+  // ── Password toggle ──────────────────────────────────────
   const pwEl = document.getElementById('password')
   document.getElementById('toggle-pw').onclick = () => {
     const show = pwEl.type === 'text'
@@ -142,7 +142,7 @@ window.addEventListener('load', async () => {
     document.getElementById('toggle-pw').textContent = show ? '👁' : '🙈'
   }
 
-  // Banner helpers
+  // ── Banner helpers ───────────────────────────────────────
   const errB = document.getElementById('error-banner')
   const sucB = document.getElementById('success-banner')
   function showErr(msg) {
@@ -159,28 +159,39 @@ window.addEventListener('load', async () => {
     b.innerHTML = on ? '<span class="btn-spinner"></span>Logging in…' : 'Log In →'
   }
 
-  // Login
+  // ── Login submit ─────────────────────────────────────────
   document.getElementById('login-form').addEventListener('submit', async () => {
     const email = document.getElementById('email').value.trim()
     const pw    = document.getElementById('password').value
     if (!email || !pw) return showErr('Please fill in all fields.')
     errB.classList.remove('show'); sucB.classList.remove('show')
     setLoading(true)
-    const res = await AUTH.login(email, pw)
-    res.ok ? (window.location.href = 'dashboard.html') : (showErr(res.msg), setLoading(false))
+    try {
+      const res = await AUTH.login(email, pw)
+      if (res.ok) {
+        window.location.href = 'dashboard.html'
+      } else {
+        showErr(res.msg)
+        setLoading(false)
+      }
+    } catch(err) {
+      showErr('An unexpected error occurred. Please try again.')
+      setLoading(false)
+    }
   })
 
-  // Forgot modal
+  // ── Forgot password modal ────────────────────────────────
   const modal    = document.getElementById('forgot-modal')
   const resetErr = document.getElementById('reset-error')
+
   document.getElementById('forgot-link').onclick = e => {
     e.preventDefault()
     const em = document.getElementById('email').value.trim()
     if (em) document.getElementById('reset-email').value = em
     modal.classList.add('open')
   }
-  document.getElementById('close-modal').onclick  = () => modal.classList.remove('open')
-  modal.addEventListener('click', e => { if (e.target===modal) modal.classList.remove('open') })
+  document.getElementById('close-modal').onclick = () => modal.classList.remove('open')
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open') })
 
   document.getElementById('btn-reset').addEventListener('click', async () => {
     const email = document.getElementById('reset-email').value.trim()
@@ -191,13 +202,22 @@ window.addEventListener('load', async () => {
     }
     btn.disabled = true; btn.textContent = 'Sending…'
     resetErr.classList.remove('show')
-    const res = await AUTH.sendPasswordReset(email)
-    if (res.ok) { modal.classList.remove('open'); showSuc('Reset email sent! Check your inbox.') }
-    else { document.getElementById('reset-error-msg').textContent = res.msg; resetErr.classList.add('show') }
+    try {
+      const res = await AUTH.sendPasswordReset(email)
+      if (res.ok) {
+        modal.classList.remove('open')
+        showSuc('Reset email sent! Check your inbox.')
+      } else {
+        document.getElementById('reset-error-msg').textContent = res.msg
+        resetErr.classList.add('show')
+      }
+    } catch(err) {
+      document.getElementById('reset-error-msg').textContent = 'Failed to send. Try again.'
+      resetErr.classList.add('show')
+    }
     btn.disabled = false; btn.textContent = 'Send Reset Link'
   })
-})
 </script>
-<script type="module" src="js/auth.js"></script>
+
 </body>
 </html>
