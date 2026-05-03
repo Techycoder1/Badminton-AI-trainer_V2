@@ -73,12 +73,12 @@ import {
    Find them at: Firebase Console → Project Settings → Your Apps
    ──────────────────────────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyAG-sl7HpAGsEHYBdYetJlHcT81E64lY0I",
-  authDomain:        "shuttlestepz-bfea2.firebaseapp.com",   // ← FIXED: was broken markdown link
-  projectId:         "shuttlestepz-bfea2",
-  storageBucket:     "shuttlestepz-bfea2.appspot.com",       // ← FIXED: was broken markdown link
-  messagingSenderId: "62299841228",
-  appId:             "1:62299841228:web:26a6c38215e5c35f5e1869",
+  apiKey            : 'AIzaSyAG-sl7HpAGsEHYBdYetJlHcT81E64lY0I',
+  authDomain        : 'shuttlestepz-bfea2.firebaseapp.com',
+  projectId         : 'shuttlestepz-bfea2',
+  storageBucket     : 'shuttlestepz-bfea2.firebasestorage.app',   // newer Firebase projects use .firebasestorage.app
+  messagingSenderId : '62299841228',
+  appId             : '1:62299841228:web:26a6c38215e5c35f5e1869',
 }
 
 const app  = initializeApp(FIREBASE_CONFIG)
@@ -261,6 +261,7 @@ function _calcLevel(xp) {
   for (let i = 1; i < XP_THRESHOLDS.length; i++) {
     if (xp >= XP_THRESHOLDS[i]) lv = i + 1; else break
   }
+  // Cap at max index (XP_THRESHOLDS.length = 11 levels → max lv = 11)
   return Math.min(lv, XP_THRESHOLDS.length)
 }
 
@@ -352,11 +353,8 @@ export async function saveSession(sessionData) {
     bestStreak    : newBest,
   })
 
-  // Award XP
-  if (sessionData.xpEarned > 0) {
-    await awardXP(sessionData.xpEarned)
-  }
-
+  // NOTE: XP is awarded separately via awardXP() — do not call it here
+  // to avoid double-awarding when saveSession + awardXP are both called.
   return ref.id
 }
 
@@ -533,6 +531,8 @@ export function listenSettings(callback) {
  * Coach use: fetch all students linked to a school code.
  */
 export async function getStudentsBySchoolCode(schoolCode) {
+  // Requires a composite Firestore index on: profile.schoolCode + profile.role
+  // Firebase will log a link to create it automatically on first run.
   const q    = query(
     collection(db, 'users'),
     where('profile.schoolCode', '==', schoolCode.toUpperCase()),
