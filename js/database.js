@@ -73,12 +73,12 @@ import {
    Find them at: Firebase Console → Project Settings → Your Apps
    ──────────────────────────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey            : 'YOUR_API_KEY',
-  authDomain        : 'YOUR_PROJECT.firebaseapp.com',
-  projectId         : 'YOUR_PROJECT_ID',
-  storageBucket     : 'YOUR_PROJECT.appspot.com',
-  messagingSenderId : 'YOUR_SENDER_ID',
-  appId             : 'YOUR_APP_ID',
+  apiKey:            "AIzaSyAG-sl7HpAGsEHYBdYetJlHcT81E64lY0I",
+  authDomain:        "shuttlestepz-bfea2.firebaseapp.com",   // ← FIXED: was broken markdown link
+  projectId:         "shuttlestepz-bfea2",
+  storageBucket:     "shuttlestepz-bfea2.appspot.com",       // ← FIXED: was broken markdown link
+  messagingSenderId: "62299841228",
+  appId:             "1:62299841228:web:26a6c38215e5c35f5e1869",
 }
 
 const app  = initializeApp(FIREBASE_CONFIG)
