@@ -1,246 +1,273 @@
-// js/auth.js — Shuttlestepz Auth module
-// Fixes applied:
-//   • Imports auth + db from firebase.js (no window.* globals)
-//   • Full try/catch around every async operation
-//   • 12-second timeout guard on Firestore write
-//   • Firestore write failure is NON-fatal (auth user already exists)
-//   • updateProfile awaited correctly
-//   • Friendly error messages for all Firebase error codes
-//   • requireGuest / requireAuth helpers
-//   • upgradePlan stub included
+/* ============================================================
+   Shuttlestepz — auth.js  (V2)
+   Thin wrapper around database.js
+   Keeps window.AUTH API so all pages work without changes.
+   ============================================================
+   Load on every page:
+     <script type="module" src="js/auth.js"></script>
+   (database.js is imported internally — no separate tag needed)
+   ============================================================ */
 
-import { auth, db } from "/Badminton-AI-trainer_V2/js/firebase.js";
+import DB from './database.js'
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  onAuthStateChanged,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+/* ── Session cache ───────────────────────────────────────────── */
+const CACHE_KEY = 'ssz_v2_user'
+function getCache()   { try { return JSON.parse(sessionStorage.getItem(CACHE_KEY)) } catch { return null } }
+function setCache(u)  { sessionStorage.setItem(CACHE_KEY, JSON.stringify(u)) }
+function clearCache() { sessionStorage.removeItem(CACHE_KEY) }
 
-import {
-  doc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+/* ── XP / Level ──────────────────────────────────────────────── */
+const XP_THRESH = [0, 500, 1200, 2200, 3500, 5200, 7200, 9800, 13000, 17000, 22000]
+const LV_TITLES = ['','Rookie','Beginner','Intermediate','Advanced','Expert','Elite','Champion','Legend','Master','Grandmaster']
 
-// ─────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────
-
-/** Wraps a promise with a hard timeout. Rejects with a clear message if exceeded. */
-function withTimeout(promise, ms = 12000, label = "Operation") {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`${label} timed out after ${ms / 1000}s`)),
-      ms
-    );
-    promise
-      .then((v) => { clearTimeout(timer); resolve(v); })
-      .catch((e) => { clearTimeout(timer); reject(e); });
-  });
+function calcLevelInfo(xp) {
+  let level = 1
+  for (let i = 1; i < XP_THRESH.length; i++) {
+    if (xp >= XP_THRESH[i]) level = i + 1; else break
+  }
+  level = Math.min(level, XP_THRESH.length)
+  const cur  = XP_THRESH[level - 1] || 0
+  const nxt  = XP_THRESH[level]     || XP_THRESH[XP_THRESH.length - 1]
+  const prog = Math.min(Math.max((xp - cur) / (nxt - cur), 0), 1) * 100
+  return { level, title: LV_TITLES[level] || 'Legend', progress: Math.round(prog), xp, nextXP: nxt }
 }
 
-/** Maps Firebase auth error codes → human-readable strings. */
-function friendlyAuthError(code) {
+const FREE_LIMIT = 5
+
+/* ── Firebase auth state → populate cache ────────────────────── */
+DB.onAuthReady(async (fbUser) => {
+  if (!fbUser) { clearCache(); return }
+  try {
+    const p   = await DB.getUserProfile(fbUser.uid)
+    const lvl = calcLevelInfo(p.xp || 0)
+    setCache({
+      uid           : fbUser.uid,
+      username      : p.profile?.displayName || fbUser.displayName || 'Athlete',
+      email         : p.profile?.email       || fbUser.email,
+      role          : p.profile?.role        || 'student',
+      plan          : p.profile?.plan        || 'free',
+      schoolId      : p.profile?.schoolCode  || null,
+      xp            : p.xp          || 0,
+      level         : lvl.level,
+      levelTitle    : lvl.title,
+      streak        : p.streak      || 0,
+      bestStreak    : p.bestStreak  || 0,
+      totalSessions : p.totalSessions || 0,
+      lastSessionDay: p.lastSessionDay || null,
+      sessionsToday : p.sessionsToday  || 0,
+      createdAt     : p.profile?.createdAt?.seconds
+        ? p.profile.createdAt.seconds * 1000 : Date.now(),
+    })
+    window.dispatchEvent(new CustomEvent('ssz-user-ready', { detail: getCache() }))
+  } catch(e) {
+    console.error('[AUTH] profile load failed', e)
+  }
+})
+
+/* ══════════════════════════════════════════════════════════════
+   window.AUTH  — public API
+══════════════════════════════════════════════════════════════ */
+const AUTH = {
+
+  // ── Sign up ───────────────────────────────────────────────
+  async signup(username, email, password, role = 'student', schoolId = null) {
+    if (!username || username.trim().length < 3) return { ok:false, msg:'Username must be at least 3 characters.' }
+    if (!email || !email.includes('@'))          return { ok:false, msg:'Enter a valid email address.' }
+    if (!password || password.length < 6)        return { ok:false, msg:'Password must be at least 6 characters.' }
+    try {
+      await DB.registerUser({ email, password, displayName: username.trim(), role, schoolCode: schoolId || '' })
+      await new Promise(r => setTimeout(r, 700))
+      return { ok:true, user: getCache() }
+    } catch(err) { return { ok:false, msg: _fbMsg(err) } }
+  },
+
+  // ── Log in ────────────────────────────────────────────────
+  async login(email, password) {
+    if (!email || !password) return { ok:false, msg:'Please fill in all fields.' }
+    try {
+      await DB.loginUser({ email, password })
+      await new Promise(r => setTimeout(r, 700))
+      return { ok:true, user: getCache() }
+    } catch(err) { return { ok:false, msg: _fbMsg(err) } }
+  },
+
+  // ── Log out ───────────────────────────────────────────────
+  async logout() {
+    clearCache()
+    await DB.logoutUser()
+    window.location.href = 'index.html'
+  },
+
+  // ── Password reset ────────────────────────────────────────
+  async sendPasswordReset(email) {
+    try { await DB.resetPassword(email); return { ok:true } }
+    catch(err) { return { ok:false, msg: _fbMsg(err) } }
+  },
+
+  // ── Getters ───────────────────────────────────────────────
+  currentUser()  { return getCache() },
+
+  // ── Guards ────────────────────────────────────────────────
+  requireAuth(redirect = 'login.html') {
+    const u = getCache()
+    if (!u) { window.location.href = redirect; return null }
+    return u
+  },
+  requireGuest(redirect = 'dashboard.html') {
+    if (getCache()) window.location.href = redirect
+  },
+  requireRole(role, redirect = 'dashboard.html') {
+    const u = getCache()
+    if (!u || u.role !== role) { window.location.href = redirect; return null }
+    return u
+  },
+
+  // ── Plan ──────────────────────────────────────────────────
+  isPremium() {
+    const u = getCache()
+    return u && (u.plan === 'premium' || u.plan === 'school')
+  },
+  async upgradePlan(uid, plan = 'premium') {
+    try {
+      await DB.updateUserProfile({ plan })
+      const c = getCache(); if (c) { c.plan = plan; setCache(c) }
+      return true
+    } catch { return false }
+  },
+
+  // ── Session limit ─────────────────────────────────────────
+  canStartSession() {
+    const u = getCache(); if (!u) return false
+    if (this.isPremium()) return true
+    const today = new Date().toDateString()
+    if (u.lastSessionDay !== today) return true
+    return (u.sessionsToday || 0) < FREE_LIMIT
+  },
+  sessionsRemaining() {
+    const u = getCache(); if (!u) return 0
+    if (this.isPremium()) return Infinity
+    const today = new Date().toDateString()
+    if (u.lastSessionDay !== today) return FREE_LIMIT
+    return Math.max(0, FREE_LIMIT - (u.sessionsToday || 0))
+  },
+  async incrementSession() {
+    const u = getCache(); if (!u || this.isPremium()) return
+    const today = new Date().toDateString()
+    const count = u.lastSessionDay === today ? (u.sessionsToday || 0) + 1 : 1
+    u.sessionsToday = count; u.lastSessionDay = today; setCache(u)
+  },
+
+  // ── Record session ────────────────────────────────────────
+  async recordSession(data) {
+    const u = getCache(); if (!u) return null
+    try {
+      const acc      = data.totalRounds > 0 ? Math.round((data.hits / data.totalRounds) * 100) : 0
+      let xpEarned   = 50 + (data.hits || 0) * 2
+      if (acc >= 90)   xpEarned += 30
+      xpEarned = Math.round(xpEarned)
+
+      await DB.saveSession({
+        drill       : data.mode || 'footwork',
+        mode        : data.mode || 'footwork',
+        score       : data.score || 0,
+        accuracy    : acc,
+        hits        : data.hits  || 0,
+        totalRounds : data.totalRounds || 0,
+        bestStreak  : data.bestStreak  || 0,
+        xpEarned,
+        reactionTime: data.roundTimings?.length
+          ? Math.round(data.roundTimings.reduce((a,b)=>a+b,0)/data.roundTimings.length) : null,
+        dirStats    : data.dirStats || {},
+      })
+
+      const result = await DB.awardXP(xpEarned)
+      u.xp = result.newXP; u.level = result.newLevel; setCache(u)
+      return { xpEarned, ...result }
+    } catch(err) { console.error('[AUTH] recordSession:', err); return null }
+  },
+
+  // ── Stats ─────────────────────────────────────────────────
+  async currentStats() {
+    const u = getCache(); if (!u) return null
+    try {
+      const p        = await DB.getUserProfile()
+      const sessions = await DB.getSessions({ limitN: 20 })
+      const lvl      = calcLevelInfo(p.xp || 0)
+
+      const history  = sessions.map(s => ({
+        id      : s.id,
+        date    : s.createdAt?.toMillis?.() || Date.now(),
+        score   : s.score,   accuracy: s.accuracy,
+        rounds  : s.totalRounds, reaction: s.reactionTime,
+        mode    : s.mode,    xpEarned: s.xpEarned,
+        streak  : s.bestStreak,
+      }))
+
+      const dirStats = {}
+      sessions.forEach(s => {
+        if (s.dirStats) {
+          for (const [dir, ds] of Object.entries(s.dirStats)) {
+            if (!dirStats[dir]) dirStats[dir] = { total:0, hit:0 }
+            dirStats[dir].total += ds.total || 0
+            dirStats[dir].hit   += ds.hit   || 0
+          }
+        }
+      })
+
+      return {
+        username: p.profile?.displayName, plan: p.profile?.plan || 'free',
+        role    : p.profile?.role || 'student',
+        xp: p.xp||0, level: lvl.level, levelTitle: lvl.title,
+        levelProgress: lvl.progress, nextXP: lvl.nextXP,
+        streak: p.streak||0, bestStreak: p.bestStreak||0,
+        totalSessions: p.totalSessions||0,
+        bestScore: p.bestScore||0, bestAccuracy: p.bestAccuracy||0,
+        history, dirStats,
+      }
+    } catch(err) { console.error('[AUTH] currentStats:', err); return null }
+  },
+
+  // ── Leaderboard ───────────────────────────────────────────
+  async getLeaderboard(n = 20) {
+    return new Promise(resolve => {
+      const unsub = DB.listenLeaderboard(entries => { unsub(); resolve(entries.slice(0, n)) }, n)
+    })
+  },
+
+  // ── School ────────────────────────────────────────────────
+  async getClassStats(schoolCode) {
+    try { return await DB.getStudentsBySchoolCode(schoolCode) } catch { return [] }
+  },
+
+  // ── Settings ──────────────────────────────────────────────
+  async getSettings()    { return DB.getSettings() },
+  async saveSettings(s)  { return DB.saveSettings(s) },
+  listenSettings(cb)     { return DB.listenSettings(cb) },
+
+  // ── Real-time listeners ───────────────────────────────────
+  listenProfile(cb)         { return DB.listenUserProfile(cb) },
+  listenSessions(cb, n=20)  { return DB.listenSessions(cb, n) },
+  listenLeaderboard(cb, n)  { return DB.listenLeaderboard(cb, n) },
+  unsubscribeAll()          { DB.unsubscribeAll() },
+
+  // ── Utils ─────────────────────────────────────────────────
+  calcLevel: calcLevelInfo,
+}
+
+function _fbMsg(err) {
   const map = {
-    "auth/email-already-in-use":    "That email is already registered. Try logging in.",
-    "auth/invalid-email":           "That email address doesn't look right.",
-    "auth/weak-password":           "Password is too weak — use at least 6 characters.",
-    "auth/network-request-failed":  "Network error. Check your connection and try again.",
-    "auth/too-many-requests":       "Too many attempts. Please wait a moment and try again.",
-    "auth/user-not-found":          "No account found with that email.",
-    "auth/wrong-password":          "Incorrect password.",
-    "auth/popup-closed-by-user":    "Sign-in window was closed. Please try again.",
-    "auth/operation-not-allowed":   "Email/password sign-in is not enabled. Contact support.",
-  };
-  return map[code] || `Something went wrong (${code || "unknown"}). Please try again.`;
-}
-
-// ─────────────────────────────────────────────────────────────
-// Core: signup
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Creates an auth user, sets their display name, and writes a Firestore profile.
- *
- * @returns {{ ok: boolean, user?: object, msg?: string }}
- */
-async function signup(username, email, password, role = "student", schoolId = null) {
-  let firebaseUser = null;
-
-  // ── Step 1: Create auth user ──────────────────────────────
-  try {
-    console.log("[signup] Step 1 — createUserWithEmailAndPassword");
-    const cred = await withTimeout(
-      createUserWithEmailAndPassword(auth, email, password),
-      10000,
-      "Auth user creation"
-    );
-    firebaseUser = cred.user;
-    console.log("[signup] ✔ Auth user created:", firebaseUser.uid);
-  } catch (err) {
-    console.error("[signup] ✘ Auth creation failed:", err.code, err.message);
-    return { ok: false, msg: friendlyAuthError(err.code) };
+    'auth/email-already-in-use'   : 'An account with this email already exists.',
+    'auth/invalid-email'          : 'Invalid email address.',
+    'auth/weak-password'          : 'Password must be at least 6 characters.',
+    'auth/user-not-found'         : 'No account found with this email.',
+    'auth/wrong-password'         : 'Incorrect password.',
+    'auth/invalid-credential'     : 'Incorrect email or password.',
+    'auth/too-many-requests'      : 'Too many attempts. Try again later.',
+    'auth/network-request-failed' : 'Network error. Check your connection.',
   }
-
-  // ── Step 2: Set display name via updateProfile ────────────
-  try {
-    console.log("[signup] Step 2 — updateProfile");
-    await withTimeout(
-      updateProfile(firebaseUser, { displayName: username }),
-      8000,
-      "updateProfile"
-    );
-    console.log("[signup] ✔ displayName set:", username);
-  } catch (err) {
-    // Non-fatal: profile name cosmetic only, don't abort signup
-    console.warn("[signup] ⚠ updateProfile failed (non-fatal):", err.message);
-  }
-
-  // ── Step 3: Write Firestore user document ─────────────────
-  try {
-    console.log("[signup] Step 3 — setDoc to users/" + firebaseUser.uid);
-
-    const userDoc = {
-      uid:       firebaseUser.uid,
-      username:  username,
-      email:     email,
-      role:      role,
-      plan:      "free",
-      schoolId:  schoolId,
-      xp:        100,                // sign-up bonus
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-    };
-
-    await withTimeout(
-      setDoc(doc(db, "users", firebaseUser.uid), userDoc),
-      12000,
-      "Firestore profile write"
-    );
-
-    console.log("[signup] ✔ Firestore document written");
-  } catch (err) {
-    // Non-fatal: the auth account exists; Firestore can be retried on next login.
-    // Still log it loudly so you see it in the console.
-    console.error("[signup] ✘ Firestore write failed (non-fatal):", err.code, err.message);
-    console.error(
-      "[signup] ⚠ Check: Firestore rules, project ID, and Firebase console network tab"
-    );
-    // Return success anyway so the user isn't blocked — profile can be repaired later.
-    // If Firestore is critical for your app, change this to:
-    //   return { ok: false, msg: "Account created but profile save failed. Please contact support." };
-  }
-
-  console.log("[signup] ✔ Signup complete for", firebaseUser.uid);
-  return { ok: true, user: firebaseUser };
+  return map[err.code] || err.message || 'Something went wrong.'
 }
 
-// ─────────────────────────────────────────────────────────────
-// Core: login
-// ─────────────────────────────────────────────────────────────
-
-async function login(email, password) {
-  try {
-    const cred = await withTimeout(
-      signInWithEmailAndPassword(auth, email, password),
-      10000,
-      "Sign in"
-    );
-
-    // Update lastLogin timestamp (best-effort, non-blocking)
-    setDoc(
-      doc(db, "users", cred.user.uid),
-      { lastLogin: serverTimestamp() },
-      { merge: true }
-    ).catch((e) => console.warn("[login] lastLogin update failed:", e.message));
-
-    return { ok: true, user: cred.user };
-  } catch (err) {
-    console.error("[login] Failed:", err.code, err.message);
-    return { ok: false, msg: friendlyAuthError(err.code) };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Core: logout
-// ─────────────────────────────────────────────────────────────
-
-async function logout() {
-  try {
-    await signOut(auth);
-    window.location.href = "login.html";
-  } catch (err) {
-    console.error("[logout] Failed:", err.message);
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Plan upgrade
-// ─────────────────────────────────────────────────────────────
-
-async function upgradePlan(uid, plan) {
-  try {
-    await withTimeout(
-      updateDoc(doc(db, "users", uid), { plan }),
-      8000,
-      "Plan upgrade"
-    );
-    console.log("[upgradePlan] ✔ Plan set to:", plan);
-    return { ok: true };
-  } catch (err) {
-    console.error("[upgradePlan] Failed:", err.message);
-    return { ok: false, msg: "Plan upgrade failed. Your account was created — contact support." };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Route guards
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Call on protected pages. Redirects to login.html if no user.
- * Returns the current user (or null if not logged in).
- */
-function requireAuth(redirectTo = "login.html") {
-  return new Promise((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      unsub();
-      if (!user) {
-        window.location.href = redirectTo;
-        resolve(null);
-      } else {
-        resolve(user);
-      }
-    });
-  });
-}
-
-/**
- * Call on auth pages (login, signup). Redirects to dashboard if already logged in.
- */
-function requireGuest(redirectTo = "dashboard.html") {
-  return new Promise((resolve) => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      unsub();
-      if (user) {
-        window.location.href = redirectTo;
-        resolve(null);
-      } else {
-        resolve(true);
-      }
-    });
-  });
-}
-
-// ─────────────────────────────────────────────────────────────
-// Export as window.AUTH so inline <script> tags can use it
-// (This is the ONLY place window.AUTH is set, from one module)
-// ─────────────────────────────────────────────────────────────
-
-window.AUTH = { signup, login, logout, upgradePlan, requireAuth, requireGuest };
-
-console.log("✔ AUTH module ready");
+window.AUTH = AUTH
+window.DB   = DB
+export default AUTH
