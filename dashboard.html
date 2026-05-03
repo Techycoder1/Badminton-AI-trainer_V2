@@ -8,9 +8,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<!-- TF + MoveNet — verified compatible versions (includes converter for loadGraphModel) -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.2.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.0/dist/pose-detection.min.js"></script>
+<!--
+  TF + MoveNet — exact load order required by pose-detection@2.1.3
+  All packages pinned to tested-compatible versions.
+  pose-detection needs: tfjs-core, tfjs-converter, tfjs-backend-webgl
+  loaded BEFORE the pose-detection bundle.
+-->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.20.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.20.0/dist/tf-backend-webgl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@3.20.0/dist/tf-backend-cpu.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@3.20.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 
 <style>
 :root {
@@ -354,6 +362,26 @@ html,body{height:100%;font-family:'Sora',system-ui,sans-serif;background:var(--b
 </style>
 </head>
 <body>
+
+<!-- Global error banner — catches CDN load failures -->
+<div id="global-err" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:#e05c5c;color:#fff;font-family:monospace;font-size:13px;padding:10px 16px;"></div>
+<script>
+window.addEventListener('error', function(e){
+  var el=document.getElementById('global-err');
+  if(el){ el.style.display='block'; el.textContent='Script error: '+e.message+' ('+e.filename+':'+e.lineno+')'; }
+});
+// Check critical libs after page load
+window.addEventListener('load', function(){
+  var missing=[];
+  if(typeof tf==='undefined') missing.push('TensorFlow.js (tf)');
+  if(typeof poseDetection==='undefined') missing.push('pose-detection');
+  if(missing.length){
+    var el=document.getElementById('global-err');
+    if(el){ el.style.display='block'; el.textContent='❌ Failed to load: '+missing.join(', ')+'. Check your internet connection or ad-blocker.'; }
+  }
+});
+</script>
 
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
@@ -963,29 +991,49 @@ function stopCamera(){
 /* Model */
 async function loadPoseModel(){
   const ms=document.getElementById('model-status');
-  ms.className='err';ms.textContent='Loading MoveNet…';
-  try{
-    // Ensure TF backend is fully initialised
-    await tf.setBackend('webgl');
-    await tf.ready();
-    // Try tfjs runtime first; fall back to tfhub if loadGraphModel fails
-    try {
-      poseDetector=await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        {runtime:'tfjs',modelType:'SinglePose.Lightning',enableSmoothing:true}
-      );
-    } catch(e1) {
-      console.warn('[trainer] tfjs runtime failed, trying tfhub…', e1.message);
-      poseDetector=await poseDetection.createDetector(
-        poseDetection.SupportedModels.MoveNet,
-        {runtime:'tfhub',modelType:'SinglePose.Lightning'}
-      );
+  ms.className='err'; ms.textContent='Loading MoveNet…';
+
+  // ── Helper: show error on page, not just console ────────────
+  function showErr(e){
+    ms.className='err';
+    ms.textContent='❌ '+e.message;
+    // Also show in camera area so it's visible
+    const cb=document.getElementById('trainer-canvas');
+    if(cb){
+      const c=cb.getContext('2d');
+      c.fillStyle='#e05c5c'; c.font='bold 14px Sora,sans-serif';
+      c.fillText('Model error: '+e.message, 12, 30);
     }
-    ms.className='ok';ms.textContent='AI ready ✓';
-    document.getElementById('pose-badge').textContent='CALIBRATING';
-    document.getElementById('pose-badge').classList.add('tracking');
+    console.error('[MoveNet]', e);
+  }
+
+  try{
+    // Step 1: pick best available backend (webgl → cpu fallback)
+    try{ await tf.setBackend('webgl'); }
+    catch(_){ await tf.setBackend('cpu'); }
+    await tf.ready();
+    console.log('[TF] backend ready:', tf.getBackend());
+
+    // Step 2: confirm loadGraphModel is available (requires tfjs-converter)
+    if(typeof tf.loadGraphModel !== 'function'){
+      throw new Error('tf.loadGraphModel missing — tfjs-converter not loaded');
+    }
+
+    // Step 3: create detector with the enum value that works in @3.20
+    //   poseDetection.movenet.modelType may be undefined in some builds,
+    //   so we use the raw string directly.
+    const MODEL_TYPE = 'SinglePose.Lightning';
+    poseDetector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      { runtime:'tfjs', modelType: MODEL_TYPE, enableSmoothing: true }
+    );
+
+    ms.className='ok'; ms.textContent='AI ready ✓  ('+tf.getBackend()+')';
+    const badge=document.getElementById('pose-badge');
+    if(badge){ badge.textContent='CALIBRATING'; badge.classList.add('tracking'); }
+
   }catch(err){
-    ms.className='err';ms.textContent='❌ Model failed: '+err.message;
+    showErr(err);
     throw err;
   }
 }
