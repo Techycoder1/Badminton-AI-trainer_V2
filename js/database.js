@@ -43,13 +43,13 @@ import {
 
 /* ── 1. FIREBASE CONFIG ─────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey            : 'AIzaSyCUsONfFExc-w1mxKgUUDStT4Ov-E2L8s',
-  authDomain        : 'shuttlestepz-63c4f.firebaseapp.com',
-  projectId         : 'shuttlestepz-63c4f',
-  storageBucket     : 'shuttlestepz-63c4f.appspot.com',
-  messagingSenderId : '726664546612',
-  appId             : '1:726664546612:web:650bc87a1a0cb30e8c3d61',
-  measurementId     : 'G-RH82CWC28S',
+      apiKey: "AIzaSyCRwKnXko_ttD4v9WU3cWxCa8VKIzhGH5Y",
+    authDomain: "shuttlestepz-46f88.firebaseapp.com",
+    projectId: "shuttlestepz-46f88",
+    storageBucket: "shuttlestepz-46f88.firebasestorage.app",
+    messagingSenderId: "856356391368",
+    appId: "1:856356391368:web:2712727d3ab91e60fe58fd",
+    measurementId: "G-SDLZ6BL4CY"
 }
 
 const app  = initializeApp(FIREBASE_CONFIG)
