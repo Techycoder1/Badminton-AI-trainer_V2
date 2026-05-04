@@ -13,14 +13,22 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
 
 import {
   doc, getDoc, setDoc, updateDoc, addDoc,
   collection, query, orderBy, limit,
   getDocs, onSnapshot, serverTimestamp,
   increment,
-} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
+
+/* ── Realtime Database ────────────────────────────────────── */
+import {
+  ref, set, get, update, push, remove,
+  onValue, onDisconnect,
+  serverTimestamp as rtServerTimestamp,
+  query as rtQuery, orderByChild, limitToLast,
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js'
 
 /* ── Internal helpers ─────────────────────────────────────── */
 function uid() { return auth.currentUser?.uid || null }
