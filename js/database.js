@@ -1,440 +1,454 @@
 /* ============================================================
-   Shuttlestepz — database.js  v3
-   Firestore  → profiles, sessions, settings, leaderboard
-   Realtime DB → presence, live XP, active sessions, fast lb
-   Imported by auth.js only — never load via <script> tag
+   Shuttlestepz — database.js
+   Firebase Firestore + Auth (Email/Password)
+   Real-time listeners · Full data layer
+   ============================================================
+   COLLECTIONS LAYOUT
+   ──────────────────
+   users/{uid}
+     ├── profile      : { displayName, email, role, schoolCode, plan, createdAt }
+     ├── xp           : number
+     ├── level        : number
+     ├── totalSessions: number
+     ├── bestStreak   : number
+     └── settings     : { voiceOn, beepOn, preferredDiff, preferredGroup }
+
+   sessions/{uid}/records/{autoId}
+     ├── drill, mode, score, accuracy, hits, totalRounds
+     ├── bestStreak, xpEarned, reactionTime, createdAt
+     └── consistency, movement  (endurance only)
+
+   leaderboard/{uid}
+     ├── displayName, xp, level, role, updatedAt
    ============================================================ */
 
-import { auth, db, rtdb } from './firebase.js'
-
-/* ── Firebase Auth ────────────────────────────────────────── */
+import { initializeApp }                from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'
 import {
+  getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  sendPasswordResetEmail,
-  updateProfile,
   onAuthStateChanged,
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js'
-
-/* ── Firestore ────────────────────────────────────────────── */
+  updateProfile,
+  sendPasswordResetEmail,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js'
 import {
-  doc, getDoc, setDoc, updateDoc, addDoc,
+  getFirestore,
+  doc, getDoc, setDoc, updateDoc,
+  addDoc, deleteDoc,
   collection, query, orderBy, limit,
-  getDocs, onSnapshot, serverTimestamp,
-  increment,
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js'
+  onSnapshot, serverTimestamp, increment,
+  getDocs, where, writeBatch,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js'
 
-/* ── Realtime Database ────────────────────────────────────── */
-import {
-  ref, set, get, update, push, remove,
-  onValue, onDisconnect,
-  serverTimestamp as rtServerTimestamp,
-  query as rtQuery, orderByChild, limitToLast,
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js'
-
-console.log('[DB] ✅ database.js loaded — Firestore + Realtime DB ready')
-
-/* ════════════════════════════════════════════════════════════
-   FIRESTORE REFS
-════════════════════════════════════════════════════════════ */
-const uid         = ()   => auth.currentUser?.uid || null
-const userRef     = (id) => doc(db,        'users',       id || uid())
-const sessionsRef = (id) => collection(db, 'users',       id || uid(), 'sessions')
-const settingsRef = (id) => doc(db,        'users',       id || uid(), 'meta', 'settings')
-const leaderRef   = ()   => collection(db, 'leaderboard')
-
-/* ════════════════════════════════════════════════════════════
-   REALTIME DATABASE REFS
-   /presence/{uid}         → online status
-   /users/{uid}/xp         → live XP
-   /users/{uid}/streak     → live streak
-   /users/{uid}/activeSess → running session
-   /leaderboard/{uid}      → fast ranked list
-════════════════════════════════════════════════════════════ */
-const rtUserRef     = (id) => ref(rtdb, `users/${id     || uid()}`)
-const rtXpRef       = (id) => ref(rtdb, `users/${id     || uid()}/xp`)
-const rtStreakRef   = (id) => ref(rtdb, `users/${id     || uid()}/streak`)
-const rtPresenceRef = (id) => ref(rtdb, `presence/${id  || uid()}`)
-const rtActiveRef   = (id) => ref(rtdb, `users/${id     || uid()}/activeSess`)
-const rtLeaderRef   = ()   => ref(rtdb, 'leaderboard')
-const rtLeaderEntry = (id) => ref(rtdb, `leaderboard/${id || uid()}`)
-
-/* ════════════════════════════════════════════════════════════
-   PRESENCE
-════════════════════════════════════════════════════════════ */
-async function setupPresence(displayName) {
-  const id = uid(); if (!id) return
-  const connRef = ref(rtdb, '.info/connected')
-
-  onValue(connRef, async (snap) => {
-    if (!snap.val()) return
-    await onDisconnect(rtPresenceRef(id)).set({
-      online: false, displayName, lastSeen: rtServerTimestamp(),
-    })
-    await set(rtPresenceRef(id), {
-      online: true, displayName, lastSeen: rtServerTimestamp(),
-    })
-    console.log('[RTDB] 🟢 Presence set — online')
-  })
+/* ── 1. FIREBASE CONFIG ─────────────────────────────────────── */
+const FIREBASE_CONFIG = {
+  apiKey            : 'AIzaSyCUsONfFExc-w1mxKgUUDStT4Ov-E2L8s',
+  authDomain        : 'shuttlestepz-63c4f.firebaseapp.com',
+  projectId         : 'shuttlestepz-63c4f',
+  storageBucket     : 'shuttlestepz-63c4f.appspot.com',
+  messagingSenderId : '726664546612',
+  appId             : '1:726664546612:web:650bc87a1a0cb30e8c3d61',
+  measurementId     : 'G-RH82CWC28S',
 }
 
-function listenOnlineCount(cb) {
-  return onValue(ref(rtdb, 'presence'), snap => {
-    let count = 0
-    snap.forEach(child => { if (child.val()?.online) count++ })
-    cb(count)
-  })
-}
+const app  = initializeApp(FIREBASE_CONFIG)
+const auth = getAuth(app)
+const db   = getFirestore(app)
 
-/* ════════════════════════════════════════════════════════════
-   AUTH STATE
-════════════════════════════════════════════════════════════ */
-function onAuthReady(cb) {
-  onAuthStateChanged(auth, async (fbUser) => {
-    if (fbUser) {
-      await setupPresence(fbUser.displayName || 'Athlete')
-    } else {
-      const id = uid()
-      if (id) {
-        try {
-          await set(rtPresenceRef(id), { online: false, lastSeen: rtServerTimestamp() })
-        } catch {}
-      }
-    }
-    cb(fbUser)
-  })
-}
+/* ── 2. STATE ────────────────────────────────────────────────── */
+let currentUser      = null
+const _unsubscribers = {}
 
-/* ════════════════════════════════════════════════════════════
-   REGISTER
-════════════════════════════════════════════════════════════ */
-async function registerUser({ email, password, displayName, role, schoolCode }) {
+/* ═══════════════════════════════════════════════════════════════
+   3. AUTH
+═══════════════════════════════════════════════════════════════ */
+
+export async function registerUser({ email, password, displayName, role = 'student', schoolCode = '' }) {
   const cred = await createUserWithEmailAndPassword(auth, email, password)
+  const uid  = cred.user.uid
   await updateProfile(cred.user, { displayName })
-  const id = cred.user.uid
-
-  /* Firestore profile */
-  await setDoc(userRef(id), {
+  await setDoc(doc(db, 'users', uid), {
     profile: {
-      displayName, email,
-      role      : role       || 'student',
-      plan      : 'free',
-      schoolCode: schoolCode || '',
-      createdAt : serverTimestamp(),
+      displayName,
+      email,
+      role,
+      schoolCode : schoolCode.toUpperCase(),
+      plan       : 'free',
+      createdAt  : serverTimestamp(),
     },
-    xp: 100, level: 1, streak: 0, bestStreak: 0,
-    totalSessions: 0, bestScore: 0, bestAccuracy: 0,
-    sessionsToday: 0, lastSessionDay: '',
+    xp            : 0,
+    level         : 1,
+    totalSessions : 0,
+    bestStreak    : 0,
+    settings: {
+      voiceOn        : true,
+      beepOn         : true,
+      preferredDiff  : 'medium',
+      preferredGroup : 'all',
+    },
   })
-
-  /* Firestore leaderboard */
-  await setDoc(doc(db, 'leaderboard', id), {
-    uid: id, displayName, xp: 100, level: 1,
-    role: role || 'student', updatedAt: serverTimestamp(),
-  })
-
-  /* RTDB live data */
-  await set(rtUserRef(id), {
-    displayName, xp: 100, level: 1, streak: 0,
-    role: role || 'student', plan: 'free',
-  })
-
-  /* RTDB leaderboard */
-  await set(rtLeaderEntry(id), {
-    displayName, xp: 100, level: 1,
-    role: role || 'student', updatedAt: Date.now(),
-  })
-
-  console.log('[DB] ✅ User registered:', id)
-  return cred
+  await _syncLeaderboard(uid, { displayName, xp: 0, level: 1, role })
+  return cred.user
 }
 
-/* ════════════════════════════════════════════════════════════
-   LOGIN / LOGOUT / RESET
-════════════════════════════════════════════════════════════ */
-async function loginUser({ email, password }) {
+export async function loginUser({ email, password }) {
   const cred = await signInWithEmailAndPassword(auth, email, password)
-  console.log('[DB] ✅ Logged in:', cred.user.uid)
-  return cred
+  return cred.user
 }
 
-async function logoutUser() {
-  const id = uid()
-  if (id) {
-    try { await set(rtPresenceRef(id), { online: false, lastSeen: rtServerTimestamp() }) } catch {}
-  }
+export async function logoutUser() {
+  _teardownAllListeners()
   await signOut(auth)
-  console.log('[DB] 👋 Logged out')
+  currentUser = null
+  window.dispatchEvent(new CustomEvent('ss-auth-change', { detail: { user: null } }))
 }
 
-async function resetPassword(email) {
+export async function resetPassword(email) {
   await sendPasswordResetEmail(auth, email)
 }
 
-/* ════════════════════════════════════════════════════════════
-   FIRESTORE PROFILE
-════════════════════════════════════════════════════════════ */
-async function getUserProfile(id) {
-  const snap = await getDoc(userRef(id))
-  if (!snap.exists()) throw new Error('Profile not found')
-  return snap.data()
+export function onAuthReady(callback) {
+  return onAuthStateChanged(auth, async (user) => {
+    currentUser = user
+    if (user) {
+      const snap = await getDoc(doc(db, 'users', user.uid))
+      if (!snap.exists()) {
+        await setDoc(doc(db, 'users', user.uid), {
+          profile: {
+            displayName : user.displayName || user.email,
+            email       : user.email,
+            role        : 'student',
+            schoolCode  : '',
+            plan        : 'free',
+            createdAt   : serverTimestamp(),
+          },
+          xp: 0, level: 1, totalSessions: 0, bestStreak: 0,
+          settings: { voiceOn:true, beepOn:true, preferredDiff:'medium', preferredGroup:'all' },
+        })
+      }
+    }
+    window.dispatchEvent(new CustomEvent('ss-auth-change', { detail: { user } }))
+    callback(user)
+  })
 }
 
-async function updateUserProfile(fields) {
-  const r    = userRef()
-  const snap = await getDoc(r)
-  if (!snap.exists()) throw new Error('No user document')
+export function getCurrentUser() { return currentUser }
 
-  const topLevel  = {}
-  const profLevel = {}
-  const TOP_KEYS  = ['xp','level','streak','bestStreak','totalSessions',
-                     'bestScore','bestAccuracy','sessionsToday','lastSessionDay']
+/* ═══════════════════════════════════════════════════════════════
+   4. USER PROFILE
+═══════════════════════════════════════════════════════════════ */
 
-  for (const [k, v] of Object.entries(fields)) {
-    if (TOP_KEYS.includes(k)) topLevel[k] = v
-    else profLevel[`profile.${k}`] = v
+export async function getUserProfile(uid = null) {
+  // Accept explicit uid OR fall back to currentUser
+  const id = uid || currentUser?.uid
+  if (!id) throw new Error('No authenticated user and no uid provided.')
+  const snap = await getDoc(doc(db, 'users', id))
+  if (!snap.exists()) throw new Error(`User ${id} not found`)
+  return { uid: id, ...snap.data() }
+}
+
+export async function updateUserProfile(updates) {
+  const uid  = _requireUID()
+  const safe = {}
+  if (updates.displayName) safe['profile.displayName'] = updates.displayName
+  if (updates.role)        safe['profile.role']        = updates.role
+  if (updates.schoolCode)  safe['profile.schoolCode']  = updates.schoolCode.toUpperCase()
+  if (updates.plan)        safe['profile.plan']        = updates.plan
+  await updateDoc(doc(db, 'users', uid), safe)
+  if (updates.displayName) {
+    await updateProfile(auth.currentUser, { displayName: updates.displayName })
+    await _syncLeaderboard(uid, { displayName: updates.displayName })
   }
-
-  const merged = { ...topLevel, ...profLevel }
-  if (Object.keys(merged).length) await updateDoc(r, merged)
-
-  /* Mirror plan/role to RTDB */
-  const rtUpdates = {}
-  if (fields.plan) rtUpdates.plan = fields.plan
-  if (fields.role) rtUpdates.role = fields.role
-  if (Object.keys(rtUpdates).length) {
-    try { await update(rtUserRef(), rtUpdates) } catch {}
-  }
 }
 
-/* ════════════════════════════════════════════════════════════
-   SAVE SESSION
-════════════════════════════════════════════════════════════ */
-async function saveSession(data) {
-  const id = uid(); if (!id) throw new Error('Not authenticated')
-
-  await addDoc(sessionsRef(id), { ...data, createdAt: serverTimestamp() })
-
-  const snap    = await getDoc(userRef(id))
-  const d       = snap.data() || {}
-  const today   = new Date().toDateString()
-  const lastDay = d.lastSessionDay || ''
-  const sessCnt = lastDay === today ? (d.sessionsToday || 0) + 1 : 1
-  const newStrk = lastDay === new Date(Date.now() - 86400000).toDateString()
-                  ? (d.streak || 0) + 1 : 1
-  const bestStrk = Math.max(d.bestStreak || 0, newStrk)
-
-  await updateDoc(userRef(id), {
-    totalSessions : increment(1),
-    sessionsToday : sessCnt,
-    lastSessionDay: today,
-    streak        : newStrk,
-    bestStreak    : bestStrk,
-    bestScore     : Math.max(d.bestScore    || 0, data.score    || 0),
-    bestAccuracy  : Math.max(d.bestAccuracy || 0, data.accuracy || 0),
+export function listenUserProfile(callback) {
+  const uid = _requireUID()
+  _teardown('userProfile')
+  const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
+    if (snap.exists()) callback({ uid, ...snap.data() })
   })
-
-  /* Sync streak to RTDB */
-  try { await update(rtUserRef(id), { streak: newStrk }) } catch {}
-}
-
-/* ════════════════════════════════════════════════════════════
-   ACTIVE SESSION (RTDB — live drill broadcast)
-════════════════════════════════════════════════════════════ */
-async function startActiveSession(drillName) {
-  const id = uid(); if (!id) return
-  await set(rtActiveRef(id), {
-    drill: drillName, startedAt: Date.now(),
-    hits: 0, score: 0, active: true,
-  })
-  onDisconnect(rtActiveRef(id)).remove()
-  console.log('[RTDB] 🏸 Active session started:', drillName)
-}
-
-async function updateActiveSession(updates) {
-  const id = uid(); if (!id) return
-  try { await update(rtActiveRef(id), updates) } catch {}
-}
-
-async function endActiveSession() {
-  const id = uid(); if (!id) return
-  try { await remove(rtActiveRef(id)) } catch {}
-  console.log('[RTDB] 🏁 Active session ended')
-}
-
-function listenActiveSession(userId, cb) {
-  return onValue(rtActiveRef(userId), snap => {
-    cb(snap.exists() ? snap.val() : null)
-  })
-}
-
-/* ════════════════════════════════════════════════════════════
-   AWARD XP — writes Firestore + RTDB + both leaderboards
-════════════════════════════════════════════════════════════ */
-const XP_THRESH = [0, 500, 1200, 2200, 3500, 5200, 7200, 9800, 13000, 17000, 22000]
-
-async function awardXP(amount) {
-  const id = uid(); if (!id) throw new Error('Not authenticated')
-
-  const snap   = await getDoc(userRef(id))
-  const d      = snap.data() || {}
-  const newXP  = (d.xp || 0) + amount
-  let newLevel = 1
-  for (let i = 1; i < XP_THRESH.length; i++) {
-    if (newXP >= XP_THRESH[i]) newLevel = i + 1; else break
-  }
-  newLevel = Math.min(newLevel, XP_THRESH.length)
-
-  /* Firestore */
-  await updateDoc(userRef(id), { xp: newXP, level: newLevel })
-
-  /* RTDB live XP */
-  try { await update(rtUserRef(id), { xp: newXP, level: newLevel }) } catch {}
-
-  /* Firestore leaderboard */
-  try {
-    await setDoc(doc(db, 'leaderboard', id),
-      { xp: newXP, level: newLevel, updatedAt: serverTimestamp() },
-      { merge: true })
-  } catch {}
-
-  /* RTDB leaderboard */
-  try {
-    await update(rtLeaderEntry(id), { xp: newXP, level: newLevel, updatedAt: Date.now() })
-  } catch {}
-
-  console.log(`[DB] ⚡ XP +${amount} → ${newXP} (Level ${newLevel})`)
-  return { newXP, newLevel, xpAdded: amount }
-}
-
-/* Live XP listener (RTDB — instant) */
-function listenLiveXP(cb) {
-  const id = uid(); if (!id) return () => {}
-  return onValue(rtXpRef(id), snap => cb(snap.val() || 0))
-}
-
-/* ════════════════════════════════════════════════════════════
-   LEADERBOARD
-════════════════════════════════════════════════════════════ */
-
-/* RTDB leaderboard — fast, real-time */
-function listenRTLeaderboard(cb, limitN = 20) {
-  const q = rtQuery(rtLeaderRef(), orderByChild('xp'), limitToLast(limitN))
-  return onValue(q, snap => {
-    const entries = []
-    snap.forEach(child => entries.push({ id: child.key, ...child.val() }))
-    entries.sort((a, b) => (b.xp || 0) - (a.xp || 0))
-    cb(entries)
-  })
-}
-
-/* Firestore leaderboard — fallback */
-const _unsubs = []
-function listenLeaderboard(cb, limitN = 20) {
-  const q = query(leaderRef(), orderBy('xp', 'desc'), limit(limitN))
-  const unsub = onSnapshot(q, snap => {
-    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  })
-  _unsubs.push(unsub)
+  _unsubscribers['userProfile'] = unsub
   return unsub
 }
 
-/* ════════════════════════════════════════════════════════════
-   SESSIONS (Firestore)
-════════════════════════════════════════════════════════════ */
-async function getSessions({ limitN = 20 } = {}) {
-  const id = uid(); if (!id) return []
-  const q  = query(sessionsRef(id), orderBy('createdAt', 'desc'), limit(limitN))
+/* ═══════════════════════════════════════════════════════════════
+   5. XP & LEVEL
+═══════════════════════════════════════════════════════════════ */
+
+const XP_THRESHOLDS = [0, 500, 1200, 2200, 3500, 5200, 7200, 9800, 13000, 17000, 22000]
+
+function _calcLevel(xp) {
+  let lv = 1
+  for (let i = 1; i < XP_THRESHOLDS.length; i++) {
+    if (xp >= XP_THRESHOLDS[i]) lv = i + 1; else break
+  }
+  return Math.min(lv, XP_THRESHOLDS.length)
+}
+
+export async function awardXP(amount) {
+  const uid      = _requireUID()
+  const snap     = await getDoc(doc(db, 'users', uid))
+  const data     = snap.data()
+  const oldXP    = data.xp    || 0
+  const oldLevel = data.level || 1
+  const newXP    = oldXP + amount
+  const newLevel = _calcLevel(newXP)
+  await updateDoc(doc(db, 'users', uid), { xp: newXP, level: newLevel })
+  await _syncLeaderboard(uid, { xp: newXP, level: newLevel })
+  return { newXP, newLevel, leveledUp: newLevel > oldLevel }
+}
+
+export async function getXPProgress(uid = null) {
+  const id   = uid || _requireUID()
+  const snap = await getDoc(doc(db, 'users', id))
+  const { xp = 0, level = 1 } = snap.data()
+  const cur  = XP_THRESHOLDS[level - 1] || 0
+  const nxt  = XP_THRESHOLDS[level]     || XP_THRESHOLDS[XP_THRESHOLDS.length - 1]
+  return {
+    xp,
+    level,
+    toNextLevel : nxt - xp,
+    pct         : Math.min(Math.max((xp - cur) / (nxt - cur), 0), 1) * 100,
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. SESSIONS
+═══════════════════════════════════════════════════════════════ */
+
+export async function saveSession(sessionData) {
+  const uid = _requireUID()
+  const ref = await addDoc(collection(db, 'sessions', uid, 'records'), {
+    drill        : sessionData.drill        || 'footwork',
+    mode         : sessionData.mode         || 'footwork',
+    score        : sessionData.score        || 0,
+    accuracy     : sessionData.accuracy     || 0,
+    hits         : sessionData.hits         || 0,
+    totalRounds  : sessionData.totalRounds  || 0,
+    bestStreak   : sessionData.bestStreak   || 0,
+    xpEarned     : sessionData.xpEarned     || 0,
+    reactionTime : sessionData.reactionTime || null,
+    consistency  : sessionData.consistency  || null,
+    movement     : sessionData.movement     || null,
+    createdAt    : serverTimestamp(),
+  })
+  const userRef  = doc(db, 'users', uid)
+  const userSnap = await getDoc(userRef)
+  const userData = userSnap.data()
+  const newBest  = Math.max(userData.bestStreak || 0, sessionData.bestStreak || 0)
+  await updateDoc(userRef, { totalSessions: increment(1), bestStreak: newBest })
+  return ref.id
+}
+
+export async function getSessions({ uid = null, limitN = 20 } = {}) {
+  const id   = uid || currentUser?.uid
+  if (!id) throw new Error('No authenticated user and no uid provided.')
+  const q    = query(
+    collection(db, 'sessions', id, 'records'),
+    orderBy('createdAt', 'desc'),
+    limit(limitN)
+  )
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-function listenSessions(cb, limitN = 20) {
-  const id = uid(); if (!id) return () => {}
-  const q  = query(sessionsRef(id), orderBy('createdAt', 'desc'), limit(limitN))
-  const unsub = onSnapshot(q, snap => {
-    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+export function listenSessions(callback, limitN = 20) {
+  const uid = _requireUID()
+  _teardown('sessions')
+  const q = query(
+    collection(db, 'sessions', uid, 'records'),
+    orderBy('createdAt', 'desc'),
+    limit(limitN)
+  )
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   })
-  _unsubs.push(unsub)
+  _unsubscribers['sessions'] = unsub
   return unsub
 }
 
-function listenUserProfile(cb) {
-  const id = uid(); if (!id) return () => {}
-  const unsub = onSnapshot(userRef(id), snap => {
-    if (snap.exists()) cb(snap.data())
+export async function getSessionStats(uid = null) {
+  const id       = uid || _requireUID()
+  const snap     = await getDoc(doc(db, 'users', id))
+  const data     = snap.data()
+  const sessions = await getSessions({ uid: id, limitN: 200 })
+  const totalXP  = sessions.reduce((s, r) => s + (r.xpEarned || 0), 0)
+  const avgScore = sessions.length
+    ? Math.round(sessions.reduce((s, r) => s + r.score, 0)    / sessions.length) : 0
+  const avgAcc   = sessions.length
+    ? Math.round(sessions.reduce((s, r) => s + r.accuracy, 0) / sessions.length) : 0
+  return {
+    totalSessions : data.totalSessions || 0,
+    totalXP,
+    bestStreak    : data.bestStreak    || 0,
+    avgScore,
+    avgAccuracy   : avgAcc,
+  }
+}
+
+export async function deleteSession(sessionId) {
+  const uid = _requireUID()
+  await deleteDoc(doc(db, 'sessions', uid, 'records', sessionId))
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7. LEADERBOARD
+═══════════════════════════════════════════════════════════════ */
+
+export function listenLeaderboard(callback, topN = 50) {
+  _teardown('leaderboard')
+  const q = query(
+    collection(db, 'leaderboard'),
+    orderBy('xp', 'desc'),
+    limit(topN)
+  )
+  const unsub = onSnapshot(q, (snap) => {
+    const entries = snap.docs.map((d, i) => ({
+      uid         : d.id,
+      rank        : i + 1,
+      displayName : d.data().displayName,
+      xp          : d.data().xp,
+      level       : d.data().level,
+      role        : d.data().role,
+    }))
+    callback(entries)
   })
-  _unsubs.push(unsub)
+  _unsubscribers['leaderboard'] = unsub
   return unsub
 }
 
-/* ════════════════════════════════════════════════════════════
-   SETTINGS (Firestore)
-════════════════════════════════════════════════════════════ */
-async function getSettings() {
-  try {
-    const snap = await getDoc(settingsRef())
-    return snap.exists() ? snap.data() : {}
-  } catch { return {} }
+export async function getUserRank(uid = null) {
+  const id   = uid || _requireUID()
+  const snap = await getDoc(doc(db, 'leaderboard', id))
+  if (!snap.exists()) return null
+  const myXP = snap.data().xp || 0
+  const q    = query(collection(db, 'leaderboard'), where('xp', '>', myXP))
+  const above= await getDocs(q)
+  return above.size + 1
 }
-async function saveSettings(s) {
-  await setDoc(settingsRef(), s, { merge: true })
+
+/* ═══════════════════════════════════════════════════════════════
+   8. SETTINGS
+═══════════════════════════════════════════════════════════════ */
+
+export async function getSettings(uid = null) {
+  const id   = uid || _requireUID()
+  const snap = await getDoc(doc(db, 'users', id))
+  return snap.data()?.settings || {}
 }
-function listenSettings(cb) {
-  const unsub = onSnapshot(settingsRef(), snap => {
-    if (snap.exists()) cb(snap.data())
+
+export async function saveSettings(settings) {
+  const uid     = _requireUID()
+  const patch   = {}
+  const allowed = ['voiceOn', 'beepOn', 'preferredDiff', 'preferredGroup']
+  allowed.forEach(k => { if (settings[k] !== undefined) patch[`settings.${k}`] = settings[k] })
+  await updateDoc(doc(db, 'users', uid), patch)
+}
+
+export function listenSettings(callback) {
+  const uid = _requireUID()
+  _teardown('settings')
+  const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
+    if (snap.exists()) callback(snap.data()?.settings || {})
   })
-  _unsubs.push(unsub)
+  _unsubscribers['settings'] = unsub
   return unsub
 }
 
-/* ════════════════════════════════════════════════════════════
-   SCHOOL / CLASS
-════════════════════════════════════════════════════════════ */
-async function getStudentsBySchoolCode(code) {
-  try {
-    const snap = await getDocs(query(collection(db, 'users')))
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(u => u.profile?.schoolCode === code)
-  } catch { return [] }
+/* ═══════════════════════════════════════════════════════════════
+   9. SCHOOL / COACH
+═══════════════════════════════════════════════════════════════ */
+
+export async function getStudentsBySchoolCode(schoolCode) {
+  const q    = query(
+    collection(db, 'users'),
+    where('profile.schoolCode', '==', schoolCode.toUpperCase()),
+    where('profile.role', '==', 'student')
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ uid: d.id, ...d.data() }))
 }
 
-/* ════════════════════════════════════════════════════════════
-   CLEANUP
-════════════════════════════════════════════════════════════ */
-function unsubscribeAll() {
-  _unsubs.forEach(fn => { try { fn() } catch {} })
-  _unsubs.length = 0
+export function listenStudentsBySchoolCode(schoolCode, callback) {
+  _teardown('students')
+  const q = query(
+    collection(db, 'users'),
+    where('profile.schoolCode', '==', schoolCode.toUpperCase()),
+    where('profile.role', '==', 'student')
+  )
+  const unsub = onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ uid: d.id, ...d.data() })))
+  })
+  _unsubscribers['students'] = unsub
+  return unsub
 }
 
-/* ════════════════════════════════════════════════════════════
-   EXPORT
-════════════════════════════════════════════════════════════ */
-const DB = {
-  /* Auth */
-  onAuthReady, registerUser, loginUser, logoutUser, resetPassword,
-  /* Profile */
-  getUserProfile, updateUserProfile,
-  /* Sessions */
-  saveSession, getSessions, listenSessions,
-  /* XP & leaderboard */
-  awardXP, listenLiveXP, listenLeaderboard, listenRTLeaderboard,
-  /* Active session */
-  startActiveSession, updateActiveSession, endActiveSession, listenActiveSession,
-  /* Presence */
-  setupPresence, listenOnlineCount,
-  /* Listeners */
-  listenUserProfile,
-  /* Settings */
+/* ═══════════════════════════════════════════════════════════════
+   10. RESET
+═══════════════════════════════════════════════════════════════ */
+
+export async function resetUserData() {
+  const uid   = _requireUID()
+  const batch = writeBatch(db)
+  batch.update(doc(db, 'users', uid), { xp:0, level:1, totalSessions:0, bestStreak:0 })
+  batch.update(doc(db, 'leaderboard', uid), { xp:0, level:1, updatedAt:serverTimestamp() })
+  await batch.commit()
+  const sessions = await getSessions({ limitN: 500 })
+  if (sessions.length > 0) {
+    const del = writeBatch(db)
+    sessions.forEach(s => del.delete(doc(db, 'sessions', uid, 'records', s.id)))
+    await del.commit()
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   11. LISTENER CLEANUP
+═══════════════════════════════════════════════════════════════ */
+
+export function unsubscribeAll() { _teardownAllListeners() }
+export function unsubscribe(key) { _teardown(key) }
+
+function _requireUID() {
+  if (!currentUser) throw new Error('No authenticated user.')
+  return currentUser.uid
+}
+function _teardown(key) {
+  if (_unsubscribers[key]) { _unsubscribers[key](); delete _unsubscribers[key] }
+}
+function _teardownAllListeners() {
+  Object.keys(_unsubscribers).forEach(_teardown)
+}
+async function _syncLeaderboard(uid, patch = {}) {
+  const ref  = doc(db, 'leaderboard', uid)
+  const snap = await getDoc(ref)
+  if (snap.exists()) {
+    await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() })
+  } else {
+    const uSnap = await getDoc(doc(db, 'users', uid))
+    const p     = uSnap.exists() ? uSnap.data() : {}
+    await setDoc(ref, {
+      displayName : patch.displayName || p.profile?.displayName || 'Player',
+      xp          : patch.xp         || p.xp    || 0,
+      level       : patch.level      || p.level || 1,
+      role        : patch.role       || p.profile?.role || 'student',
+      updatedAt   : serverTimestamp(),
+    })
+  }
+}
+
+window.addEventListener('beforeunload', _teardownAllListeners)
+
+/* ═══════════════════════════════════════════════════════════════
+   12. DEFAULT EXPORT
+═══════════════════════════════════════════════════════════════ */
+export default {
+  registerUser, loginUser, logoutUser, resetPassword, onAuthReady, getCurrentUser,
+  getUserProfile, updateUserProfile, listenUserProfile,
+  awardXP, getXPProgress,
+  saveSession, getSessions, listenSessions, getSessionStats, deleteSession,
+  listenLeaderboard, getUserRank,
   getSettings, saveSettings, listenSettings,
-  /* School */
-  getStudentsBySchoolCode,
-  /* Cleanup */
-  unsubscribeAll,
-  /* Raw objects */
-  auth, db, rtdb,
+  getStudentsBySchoolCode, listenStudentsBySchoolCode,
+  unsubscribeAll, unsubscribe, resetUserData,
 }
-
-export default DB
