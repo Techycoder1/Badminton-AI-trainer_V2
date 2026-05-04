@@ -187,168 +187,147 @@
 </div>
 
 <!--
-  ═══════════════════════════════════════════════════
-  SCRIPTS
-  • Only ONE module script tag — auth.js imports firebase.js internally
-  • NO separate firebase.js script tag (caused double-init)
-  • Absolute path for GitHub Pages compatibility
-  ═══════════════════════════════════════════════════
+  ════════════════════════════════════════════════════
+  ONE module script only.
+  auth.js → database.js → firebase.js (chain of imports)
+  No extra tags needed. No polling. No race condition.
+  ════════════════════════════════════════════════════
 -->
+<script type="module">
+  import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
 
-<!-- Loads auth.js which internally imports firebase.js — sets window.AUTH -->
-<script type="module" src="/Badminton-AI-trainer_V2/js/auth.js"></script>
+  /* Expose globally so inline onclick handlers can use AUTH if needed */
+  window.AUTH = AUTH
+  console.log('[signup] ✅ AUTH loaded')
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+  /* ── Redirect if already logged in ─────────────────────── */
+  AUTH.requireGuest()
 
-  // Wait for window.AUTH to be set by the module above
-  // Modules run async — poll every 50ms, give up after 2 seconds
-  function waitForAuth(cb, attempts = 0) {
-    if (window.AUTH) return cb();
-    if (attempts > 40) {
-      console.error("[signup] AUTH never loaded — check js/auth.js import path");
-      document.getElementById("error-msg").textContent =
-        "App failed to load. Please hard-refresh (Ctrl+Shift+R) and try again.";
-      document.getElementById("error-banner").classList.add("show");
-      return;
-    }
-    setTimeout(() => waitForAuth(cb, attempts + 1), 50);
+  /* ── Role selector ──────────────────────────────────────── */
+  let role = 'student'
+  document.querySelectorAll('.role-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('selected'))
+      opt.classList.add('selected')
+      role = opt.dataset.role
+      document.getElementById('school-group').style.display =
+        role !== 'student' ? 'block' : 'none'
+    })
+  })
+
+  /* ── Plan selector ──────────────────────────────────────── */
+  let plan = 'free'
+  document.querySelectorAll('.plan-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.plan-opt').forEach(o => o.classList.remove('selected'))
+      opt.classList.add('selected')
+      plan = opt.dataset.plan
+    })
+  })
+
+  /* ── Password toggle ────────────────────────────────────── */
+  const pwEl = document.getElementById('password')
+  document.getElementById('toggle-pw').onclick = () => {
+    const showing = pwEl.type === 'text'
+    pwEl.type = showing ? 'password' : 'text'
+    document.getElementById('toggle-pw').textContent = showing ? '👁' : '🙈'
   }
 
-  waitForAuth(async () => {
-    console.log("[signup] AUTH ready, initialising form");
+  /* ── Password strength ──────────────────────────────────── */
+  const STRENGTHS = [
+    { label: '',            color: 'transparent'   },
+    { label: 'Weak',        color: 'var(--red)'    },
+    { label: 'Fair',        color: 'var(--amber)'  },
+    { label: 'Good',        color: 'var(--amber)'  },
+    { label: 'Strong',      color: 'var(--accent)' },
+    { label: 'Very Strong', color: 'var(--accent)' },
+  ]
+  pwEl.addEventListener('input', () => {
+    const pw = pwEl.value
+    let s = 0
+    if (pw.length >= 6)           s++
+    if (pw.length >= 10)          s++
+    if (/[A-Z]/.test(pw))         s++
+    if (/[0-9]/.test(pw))         s++
+    if (/[^a-zA-Z0-9]/.test(pw))  s++
+    const st = STRENGTHS[s]
+    document.getElementById('strength-fill').style.cssText =
+      `width:${s * 20}%;background:${st.color}`
+    const lbl = document.getElementById('strength-label')
+    lbl.textContent = st.label
+    lbl.style.color = st.color
+  })
 
-    // ── Redirect if already logged in ──────────────────────
-    await AUTH.requireGuest();
+  /* ── UI helpers ─────────────────────────────────────────── */
+  const errB = document.getElementById('error-banner')
 
-    // ── Role selector ───────────────────────────────────────
-    let role = "student";
-    document.querySelectorAll(".role-opt").forEach((opt) => {
-      opt.addEventListener("click", () => {
-        document.querySelectorAll(".role-opt").forEach((o) => o.classList.remove("selected"));
-        opt.classList.add("selected");
-        role = opt.dataset.role;
-        document.getElementById("school-group").style.display =
-          role !== "student" ? "block" : "none";
-      });
-    });
+  function showErr(msg) {
+    document.getElementById('error-msg').textContent = msg
+    errB.classList.add('show')
+    errB.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
 
-    // ── Plan selector ───────────────────────────────────────
-    let plan = "free";
-    document.querySelectorAll(".plan-opt").forEach((opt) => {
-      opt.addEventListener("click", () => {
-        document.querySelectorAll(".plan-opt").forEach((o) => o.classList.remove("selected"));
-        opt.classList.add("selected");
-        plan = opt.dataset.plan;
-      });
-    });
+  function hideErr() {
+    errB.classList.remove('show')
+  }
 
-    // ── Password toggle ─────────────────────────────────────
-    const pwEl = document.getElementById("password");
-    document.getElementById("toggle-pw").onclick = () => {
-      const showing = pwEl.type === "text";
-      pwEl.type = showing ? "password" : "text";
-      document.getElementById("toggle-pw").textContent = showing ? "👁" : "🙈";
-    };
+  function setLoading(on) {
+    const b = document.getElementById('btn-signup')
+    b.disabled = on
+    b.innerHTML = on
+      ? '<span class="btn-spinner"></span>Creating account…'
+      : 'Create Account →'
+  }
 
-    // ── Password strength ───────────────────────────────────
-    const STRENGTHS = [
-      { label: "",            color: "transparent"   },
-      { label: "Weak",        color: "var(--red)"    },
-      { label: "Fair",        color: "var(--amber)"  },
-      { label: "Good",        color: "var(--amber)"  },
-      { label: "Strong",      color: "var(--accent)" },
-      { label: "Very Strong", color: "var(--accent)" },
-    ];
-    pwEl.addEventListener("input", () => {
-      const pw = pwEl.value;
-      let s = 0;
-      if (pw.length >= 6)           s++;
-      if (pw.length >= 10)          s++;
-      if (/[A-Z]/.test(pw))         s++;
-      if (/[0-9]/.test(pw))         s++;
-      if (/[^a-zA-Z0-9]/.test(pw))  s++;
-      const st = STRENGTHS[s];
-      document.getElementById("strength-fill").style.cssText =
-        `width:${s * 20}%;background:${st.color}`;
-      const lbl = document.getElementById("strength-label");
-      lbl.textContent = st.label;
-      lbl.style.color = st.color;
-    });
+  /* ── Signup submit ──────────────────────────────────────── */
+  document.getElementById('signup-form').addEventListener('submit', async () => {
+    const username = document.getElementById('username').value.trim()
+    const email    = document.getElementById('email').value.trim()
+    const pw       = document.getElementById('password').value
+    const schoolId = document.getElementById('school-id').value.trim() || null
+    const terms    = document.getElementById('terms').checked
 
-    // ── UI helpers ──────────────────────────────────────────
-    const errB = document.getElementById("error-banner");
+    hideErr()
 
-    function showErr(msg) {
-      document.getElementById("error-msg").textContent = msg;
-      errB.classList.add("show");
-      errB.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    /* Client-side validation — mirrors your original exactly */
+    if (!username || username.length < 3) return showErr('Username must be at least 3 characters.')
+    if (!email || !email.includes('@'))   return showErr('Enter a valid email address.')
+    if (!pw || pw.length < 6)             return showErr('Password must be at least 6 characters.')
+    if (!terms)                           return showErr('Please accept the Terms of Service.')
 
-    function hideErr() {
-      errB.classList.remove("show");
-    }
+    setLoading(true)
 
-    function setLoading(on) {
-      const b = document.getElementById("btn-signup");
-      b.disabled = on;
-      b.innerHTML = on
-        ? '<span class="btn-spinner"></span>Creating account…'
-        : "Create Account →";
-    }
+    try {
+      const res = await AUTH.signup(username, email, pw, role, schoolId)
 
-    // ── Signup submit handler ───────────────────────────────
-    document.getElementById("signup-form").addEventListener("submit", async () => {
-      const username = document.getElementById("username").value.trim();
-      const email    = document.getElementById("email").value.trim();
-      const pw       = document.getElementById("password").value;
-      const schoolId = document.getElementById("school-id").value.trim() || null;
-      const terms    = document.getElementById("terms").checked;
-
-      hideErr();
-
-      // Client-side validation
-      if (!username || username.length < 3) return showErr("Username must be at least 3 characters.");
-      if (!email || !email.includes("@"))   return showErr("Enter a valid email address.");
-      if (!pw || pw.length < 6)             return showErr("Password must be at least 6 characters.");
-      if (!terms)                           return showErr("Please accept the Terms of Service.");
-
-      setLoading(true);
-
-      try {
-        const res = await AUTH.signup(username, email, pw, role, schoolId);
-
-        if (!res.ok) {
-          showErr(res.msg);
-          return; // finally{} resets button
-        }
-
-        // Optional premium upgrade
-        if (plan === "premium") {
-          const upg = await AUTH.upgradePlan(res.user.uid, "premium");
-          if (!upg.ok) {
-            sessionStorage.setItem(
-              "shuttlestepz_notice",
-              "Premium upgrade didn't complete. Please retry in Settings."
-            );
-          }
-        }
-
-        console.log("[signup] ✔ Success — redirecting to dashboard");
-        window.location.href = "dashboard.html";
-
-      } catch (err) {
-        console.error("[signup] Unexpected error:", err);
-        showErr("An unexpected error occurred. Please try again.");
-      } finally {
-        // ALWAYS resets button — this is the core hang fix
-        setLoading(false);
+      if (!res.ok) {
+        showErr(res.msg)
+        return /* finally{} always resets button */
       }
-    });
 
-  }); // end waitForAuth
-}); // end DOMContentLoaded
+      /* Optional premium upgrade */
+      if (plan === 'premium') {
+        const upg = await AUTH.upgradePlan(null, 'premium')
+        if (!upg.ok) {
+          sessionStorage.setItem(
+            'shuttlestepz_notice',
+            "Premium upgrade didn't complete. Please retry in Settings."
+          )
+        }
+      }
+
+      console.log('[signup] ✔ Success — redirecting to dashboard')
+      window.location.href = 'dashboard.html'
+
+    } catch (err) {
+      console.error('[signup] Unexpected error:', err)
+      showErr('An unexpected error occurred. Please try again.')
+    } finally {
+      /* ALWAYS resets button — fixes the button-hang bug */
+      setLoading(false)
+    }
+  })
 </script>
-<script type="module" src="js/auth.js"></script>
+
 </body>
 </html>
