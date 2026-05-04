@@ -4,7 +4,7 @@
    Imported by auth.js — never load directly in HTML.
    ============================================================ */
 
-import { app, auth, db, rtdb } from './firebase.js'
+import { auth, db, rtdb } from './firebase.js'
 
 import {
   createUserWithEmailAndPassword,
