@@ -266,8 +266,17 @@ async function loadManage() {
 // ── Main init ─────────────────────────────────────────────────
 window.addEventListener('load', async () => {
 
-  // Wait for Firebase modules
-  await new Promise(r => setTimeout(r, 450))
+  // Wait for Firebase auth + profile to be ready
+  // ssz-user-ready fires from auth.js after Firestore profile is fetched
+  await new Promise(resolve => {
+    // If already loaded (fast cache hit), resolve immediately
+    if (window.AUTH && AUTH.currentUser()) { resolve(); return }
+    // Otherwise wait for the event (max 6s fallback)
+    const timeout = setTimeout(resolve, 6000)
+    window.addEventListener('ssz-user-ready', () => {
+      clearTimeout(timeout); resolve()
+    }, { once: true })
+  })
 
   if (!window.AUTH) {
     console.error('[Dashboard] AUTH not loaded')
