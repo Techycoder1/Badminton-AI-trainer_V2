@@ -1,7 +1,7 @@
 /* ============================================================
    Shuttlestepz — firebase.js  v4
    Exports: app, auth, db, rtdb
-   Uses firebase 10.12.2 — stable CDN with all packages.
+   firebase 10.12.2 CDN — all packages consistent
    ============================================================ */
 
 import { initializeApp, getApps, getApp }
@@ -27,7 +27,7 @@ const firebaseConfig = {
   measurementId    : 'G-SDLZ6BL4CY',
 }
 
-/* Guard against double-init */
+/* Guard against double-init on hot reload / multiple imports */
 const app  = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 const auth = getAuth(app)
 const db   = getFirestore(app)
