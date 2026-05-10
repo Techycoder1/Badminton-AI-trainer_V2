@@ -1219,27 +1219,50 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script type="module">
-/* Load auth quietly, then boot dashboard.js logic */
-let AUTH = {};
+/* Load auth only — no dashboard.js import (causes roleBadge conflict) */
 try {
-  const mod = await import('./js/auth.js');
-  AUTH = mod.AUTH || mod.default || {};
+  const mod  = await import('./js/auth.js');
+  const AUTH = mod.default || mod.AUTH || {};
   window.AUTH = AUTH;
-} catch(e) { console.warn('[dashboard] auth.js not loaded:', e.message); }
 
-/* doLogout — safe regardless of AUTH shape */
-window.doLogout = function() {
-  try {
-    if (typeof AUTH.logout   === 'function') { AUTH.logout();   return; }
-    if (typeof AUTH.signOut  === 'function') { AUTH.signOut();  return; }
-  } catch(e) {}
-  window.location.href = 'login.html';
-};
+  /* doLogout */
+  window.doLogout = function() {
+    try {
+      if (typeof AUTH.logout  === 'function') { AUTH.logout();  return; }
+      if (typeof AUTH.signOut === 'function') { AUTH.signOut(); return; }
+    } catch(e) {}
+    window.location.href = 'login.html';
+  };
 
-/* Sync XP/sessions from AUTH if it exposes them */
-try {
-  const dashMod = await import('./js/dashboard.js');
-} catch(e) { /* dashboard.js is optional — inline JS handles everything */ }
+  /* Boot dashboard with real user data once AUTH is ready */
+  window.addEventListener('ssz-user-ready', (e) => {
+    const user = e.detail;
+    if (!user) return;
+    if (typeof UI !== 'undefined') {
+      if (UI.boot) UI.boot(null, user);
+    }
+    /* Populate profile fields */
+    const tx = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    tx('greet-name',   user.username  || 'Athlete');
+    tx('profile-name', user.username  || '—');
+    tx('profile-email',user.email     || '—');
+    tx('profile-av',   (user.username || '?').slice(0,2).toUpperCase());
+    tx('profile-pill', user.role      || 'Student');
+    tx('s-user',       user.username  || '—');
+    tx('s-email',      user.email     || '—');
+    tx('s-plan',       user.plan === 'premium' || user.plan === 'school' ? '⭐ Premium' : 'Free');
+    tx('role-badge',   user.role      || 'Student');
+    /* Hide upgrade button if already premium */
+    const btn = document.getElementById('btn-upgrade');
+    if (btn && (user.plan === 'premium' || user.plan === 'school')) btn.style.display = 'none';
+    /* Render XP from Firebase */
+    if (typeof UI !== 'undefined' && UI.renderXP) UI.renderXP(user.xp || 0);
+  });
+
+  console.log('[dashboard] ✅ auth.js loaded');
+} catch(e) {
+  console.warn('[dashboard] auth.js not loaded:', e.message);
+}
 </script>
 
 </body>
