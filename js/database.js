@@ -52,6 +52,11 @@ const FIREBASE_CONFIG = {
   measurementId     : 'G-Y0CJ1JVD45',
 }
 
+/* ── Creator emails (always get premium free) ───────────────── */
+const CREATOR_EMAILS = [
+  'techycoder1@gmail.com',   // ← your email — always premium
+]
+
 const app  = initializeApp(FIREBASE_CONFIG)
 const auth = getAuth(app)
 const db   = getFirestore(app)
