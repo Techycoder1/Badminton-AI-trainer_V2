@@ -267,25 +267,55 @@ async function loadManage() {
 window.addEventListener('load', async () => {
 
   // Wait for Firebase auth + profile to be ready
-  // ssz-user-ready fires from auth.js after Firestore profile is fetched
   await new Promise(resolve => {
-    // If already loaded (fast cache hit), resolve immediately
     if (window.AUTH && AUTH.currentUser()) { resolve(); return }
-    // Otherwise wait for the event (max 6s fallback)
     const timeout = setTimeout(resolve, 6000)
     window.addEventListener('ssz-user-ready', () => {
       clearTimeout(timeout); resolve()
     }, { once: true })
   })
 
-  if (!window.AUTH) {
-    console.error('[Dashboard] AUTH not loaded')
-    return
-  }
+  if (!window.AUTH) { console.error('[Dashboard] AUTH not loaded'); return }
 
-  // Require auth
   const user = AUTH.requireAuth('login.html')
   if (!user) return
+
+  // ── Premium status ──────────────────────────────────────────
+  const isPremium = AUTH.isPremium()
+  const rankTier  = window.PREMIUM?.getRankTier(user.xp || 0)
+
+  // Show premium badge in sidebar
+  const roleBadge = document.getElementById('role-badge')
+  if (roleBadge && window.PREMIUM) {
+    roleBadge.innerHTML = isPremium
+      ? PREMIUM.badgeHTML(user.plan)
+      : PREMIUM.badgeHTML('free')
+    roleBadge.style.border = 'none'
+    roleBadge.style.background = 'transparent'
+  }
+
+  // Show rank tier
+  if (rankTier) {
+    const rankEl = document.getElementById('stat-rank')
+    if (rankEl) rankEl.textContent = `${rankTier.icon} ${rankTier.name}`
+  }
+
+  // Lock premium drill cards for free users
+  if (!isPremium) {
+    const lockCards = [
+      { id: 'drill-reflex',    name: 'Reaction Blitz'  },
+      { id: 'drill-endurance', name: 'Endurance Run'   },
+    ]
+    lockCards.forEach(({ id, name }) => {
+      const el = document.getElementById(id)
+      if (el && window.PREMIUM) PREMIUM.lockElement(el, name)
+    })
+  }
+
+  // Streak alert
+  if (user.streak > 1 && window.PREMIUM) {
+    setTimeout(() => PREMIUM.showStreakAlert(user.streak), 2000)
+  }
 
   // Apply role class to body for CSS visibility rules
   if (user.role) document.body.classList.add(`role-${user.role}`)
