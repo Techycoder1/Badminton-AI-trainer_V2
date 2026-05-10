@@ -43,13 +43,13 @@ import {
 
 /* ── 1. FIREBASE CONFIG ─────────────────────────────────────── */
 const FIREBASE_CONFIG = {
-  apiKey            : 'AIzaSyCUsONfFExc-w1mxKgUUDStT4Ov-E2L8s',
-  authDomain        : 'shuttlestepz-63c4f.firebaseapp.com',
-  projectId         : 'shuttlestepz-63c4f',
-  storageBucket     : 'shuttlestepz-63c4f.appspot.com',
-  messagingSenderId : '726664546612',
-  appId             : '1:726664546612:web:650bc87a1a0cb30e8c3d61',
-  measurementId     : 'G-RH82CWC28S',
+  apiKey            : 'AIzaSyDAznGVHeLIAR6pPSVewiw3hUpSPYtXgO4',
+  authDomain        : 'shuttlestepz-bac23.firebaseapp.com',
+  projectId         : 'shuttlestepz-bac23',
+  storageBucket     : 'shuttlestepz-bac23.firebasestorage.app',
+  messagingSenderId : '167174250097',
+  appId             : '1:167174250097:web:d2b2cd1afa8818005fc5d0',
+  measurementId     : 'G-Y0CJ1JVD45',
 }
 
 const app  = initializeApp(FIREBASE_CONFIG)
@@ -410,8 +410,14 @@ export function unsubscribeAll() { _teardownAllListeners() }
 export function unsubscribe(key) { _teardown(key) }
 
 function _requireUID() {
-  if (!currentUser) throw new Error('No authenticated user.')
-  return currentUser.uid
+  // 1. Firebase auth state (most reliable)
+  if (currentUser?.uid) return currentUser.uid
+  // 2. Session cache fallback (works before onAuthStateChanged fires)
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('ssz_v2_user'))
+    if (cached?.uid) return cached.uid
+  } catch(e) {}
+  throw new Error('No authenticated user.')
 }
 function _teardown(key) {
   if (_unsubscribers[key]) { _unsubscribers[key](); delete _unsubscribers[key] }
