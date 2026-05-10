@@ -9,6 +9,12 @@
    ============================================================ */
 
 import DB from './database.js'
+import PREMIUM from './premium.js'
+
+/* ── Creator emails (must match premium.js) ──────────────────── */
+const CREATOR_EMAILS = [
+  'techycoder1@gmail.com',
+]
 
 /* ── Session cache ───────────────────────────────────────────── */
 const CACHE_KEY = 'ssz_v2_user'
@@ -125,7 +131,10 @@ const AUTH = {
   // ── Plan ──────────────────────────────────────────────────
   isPremium() {
     const u = getCache()
-    return u && (u.plan === 'premium' || u.plan === 'school')
+    if (!u) return false
+    // Creator always gets premium free
+    if (CREATOR_EMAILS.includes((u.email || '').toLowerCase())) return true
+    return u.plan === 'premium' || u.plan === 'school'
   },
   async upgradePlan(uid, plan = 'premium') {
     try {
