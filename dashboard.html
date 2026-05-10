@@ -651,6 +651,7 @@ html, body {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 .anim-up  { animation: fadeUp .4s cubic-bezier(.4,0,.2,1) both; }
 .anim-d1  { animation-delay: .07s; }
 .anim-d2  { animation-delay: .14s; }
@@ -1177,25 +1178,215 @@ function renderLeaderboard() {
 }
 
 /* Drill */
-function startDrill(id) {
-  document.querySelectorAll('.drill-card').forEach(c => c.style.outline = '');
+/* ── Camera stream reference ─────────────────────────────── */
+var _camStream   = null;
+var _drillTimer  = null;
+var _drillActive = false;
+var _drillSecs   = 0;
+var _drillHits   = 0;
+var _drillXP     = 0;
+
+const DRILL_META = {
+  footwork : { name:'Footwork Drill',    icon:'🦶', xp:20, duration:60  },
+  shadow   : { name:'Shadow Badminton',  icon:'👤', xp:30, duration:90  },
+  reflex   : { name:'Reflex Challenge',  icon:'⚡', xp:50, duration:60  },
+  endurance: { name:'Endurance Run',     icon:'🏃', xp:60, duration:300 },
+};
+
+function stopCamera() {
+  if (_camStream) {
+    _camStream.getTracks().forEach(t => t.stop());
+    _camStream = null;
+  }
+  if (_drillTimer) { clearInterval(_drillTimer); _drillTimer = null; }
+  _drillActive = false;
+}
+
+async function startDrill(id) {
+  const meta = DRILL_META[id];
+  if (!meta) return;
+
+  /* Highlight selected card */
   document.querySelectorAll('.drill-card').forEach(c => {
-    if ((c.getAttribute('onclick')||'').includes(id))
-      c.style.outline = '2px solid rgba(57,224,122,.5)';
+    c.style.outline = (c.getAttribute('onclick')||'').includes(id)
+      ? '2px solid rgba(57,224,122,.5)' : '';
   });
+
+  /* Stop any existing stream */
+  stopCamera();
+
   const box = document.getElementById('camera-box');
-  const icons = {footwork:'🦶',shadow:'👤',reflex:'⚡',endurance:'🏃'};
-  const names = {footwork:'Footwork Drill',shadow:'Shadow Badminton',reflex:'Reflex Challenge',endurance:'Endurance Run'};
-  if (box) box.innerHTML = `
+  if (!box) return;
+
+  /* Show loading state */
+  box.innerHTML = `
     <div class="camera-inner">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.2">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-        <circle cx="12" cy="13" r="4"/>
-      </svg>
-      <div class="camera-label">${icons[id]} ${names[id]} — Camera initialising…</div>
-      <div class="camera-sub">Allow camera access when prompted.</div>
+      <div style="width:40px;height:40px;border-radius:50%;border:3px solid rgba(57,224,122,.2);border-top-color:#39e07a;animation:spin .8s linear infinite;margin:0 auto 14px"></div>
+      <div class="camera-label">Requesting camera access…</div>
+      <div class="camera-sub">Please allow camera permission when prompted.</div>
+    </div>`;
+
+  /* Request camera */
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode:'user', width:{ideal:1280}, height:{ideal:720} },
+      audio: false,
+    });
+  } catch(err) {
+    const msg = err.name === 'NotAllowedError'
+      ? 'Camera permission denied. Please allow camera access in your browser settings.'
+      : err.name === 'NotFoundError'
+      ? 'No camera found. Please connect a camera and try again.'
+      : 'Could not access camera: ' + err.message;
+
+    box.innerHTML = `
+      <div class="camera-inner">
+        <div style="font-size:36px;margin-bottom:12px">📵</div>
+        <div class="camera-label" style="color:#e05c5c">${msg}</div>
+        <div class="camera-sub" style="margin-top:10px">
+          <button onclick="startDrill('${id}')" style="background:#39e07a;color:#060a07;border:none;border-radius:8px;padding:8px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
+            Try Again
+          </button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  _camStream   = stream;
+  _drillActive = true;
+  _drillSecs   = 0;
+  _drillHits   = 0;
+  _drillXP     = meta.xp;
+
+  /* Build live camera UI */
+  box.style.padding = '0';
+  box.style.minHeight = 'auto';
+  box.innerHTML = `
+    <div style="position:relative;width:100%;border-radius:inherit;overflow:hidden;background:#000">
+
+      <!-- Live video feed -->
+      <video id="drill-video" autoplay playsinline muted
+        style="width:100%;display:block;max-height:420px;object-fit:cover;transform:scaleX(-1)">
+      </video>
+
+      <!-- HUD overlay -->
+      <div style="position:absolute;inset:0;pointer-events:none;padding:14px">
+
+        <!-- Top bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:7px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#e05c5c;animation:pulse 1s infinite"></div>
+            <span style="font-size:12px;font-weight:700;color:#fff;font-family:Sora,sans-serif">LIVE</span>
+          </div>
+          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px">
+            <span style="font-size:13px;font-weight:700;color:#39e07a;font-family:Sora,sans-serif">${meta.icon} ${meta.name}</span>
+          </div>
+          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px">
+            <span id="drill-timer" style="font-size:13px;font-weight:700;color:#fff;font-family:'DM Mono',monospace">0:00</span>
+          </div>
+        </div>
+
+        <!-- Bottom stats bar -->
+        <div style="position:absolute;bottom:14px;left:14px;right:14px;display:flex;gap:8px;align-items:stretch">
+          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center">
+            <div id="drill-xp-stat" style="font-size:18px;font-weight:900;color:#39e07a;font-family:Sora,sans-serif">+${meta.xp}</div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">XP Earned</div>
+          </div>
+          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center">
+            <div id="drill-time-stat" style="font-size:18px;font-weight:900;color:#fff;font-family:'DM Mono',monospace">0s</div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">Time</div>
+          </div>
+          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center;pointer-events:auto">
+            <button onclick="stopDrill('${id}')"
+              style="background:#e05c5c;border:none;border-radius:6px;color:#fff;font-family:Sora,sans-serif;font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;width:100%">
+              ⏹ Stop
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+
+  /* Attach stream to video element */
+  const video = document.getElementById('drill-video');
+  video.srcObject = stream;
+  video.play().catch(() => {});
+
+  /* Start timer */
+  _drillTimer = setInterval(() => {
+    _drillSecs++;
+    const m = Math.floor(_drillSecs / 60);
+    const s = String(_drillSecs % 60).padStart(2, '0');
+    const timerEl = document.getElementById('drill-timer');
+    const timeEl  = document.getElementById('drill-time-stat');
+    if (timerEl) timerEl.textContent = m + ':' + s;
+    if (timeEl)  timeEl.textContent  = _drillSecs + 's';
+
+    /* Auto-stop after drill duration */
+    if (_drillSecs >= meta.duration) stopDrill(id);
+  }, 1000);
+}
+
+function stopDrill(id) {
+  const meta = DRILL_META[id] || DRILL_META['footwork'];
+  const secs = _drillSecs;
+  const xp   = _drillXP;
+
+  stopCamera();
+
+  const box = document.getElementById('camera-box');
+  if (!box) return;
+  box.style.padding   = '';
+  box.style.minHeight = '';
+
+  /* Save session to Firebase if logged in */
+  if (window.AUTH && typeof window.AUTH.recordSession === 'function') {
+    window.AUTH.recordSession({
+      mode       : id,
+      score      : Math.min(100, Math.round((secs / meta.duration) * 100)),
+      hits       : Math.floor(secs / 5),
+      totalRounds: Math.floor(meta.duration / 5),
+      bestStreak : 3,
+    }).then(res => {
+      if (res) showNotice(`+${res.xpEarned} XP earned! Great ${meta.name} 🏸`);
+    }).catch(() => showNotice(`+${xp} XP earned! Great ${meta.name} 🏸`));
+  } else {
+    showNotice(`+${xp} XP earned! Great ${meta.name} 🏸`);
+  }
+
+  /* Show session summary */
+  const mins = Math.floor(secs / 60);
+  const secsLeft = secs % 60;
+  box.innerHTML = `
+    <div class="camera-inner">
+      <div style="font-size:48px;margin-bottom:10px">🏆</div>
+      <div class="camera-label" style="color:#39e07a;font-size:16px">${meta.icon} Session Complete!</div>
+      <div style="display:flex;gap:20px;justify-content:center;margin:16px 0">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#eaf0eb;font-family:Sora,sans-serif">${mins}m ${secsLeft}s</div>
+          <div style="font-size:10px;color:#7a9080;text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Duration</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#39e07a;font-family:Sora,sans-serif">+${xp} XP</div>
+          <div style="font-size:10px;color:#7a9080;text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Earned</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+        <button onclick="startDrill('${id}')"
+          style="background:#39e07a;color:#060a07;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
+          Train Again
+        </button>
+        <button onclick="switchTab('overview')"
+          style="background:rgba(255,255,255,.07);color:#eaf0eb;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
+          View Stats
+        </button>
+      </div>
     </div>`;
 }
+
+window.startDrill = startDrill;
+window.stopDrill  = stopDrill;
 
 window.upgradeToPremium = function() { window.location.href = 'upgrade.html'; };
 
