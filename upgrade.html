@@ -19,6 +19,25 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 
+/* ── AUTH LOADING SCREEN ── */
+#auth-loading {
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px;
+  transition:opacity .3s;
+}
+#auth-loading.hidden{opacity:0;pointer-events:none;}
+.auth-spinner{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid var(--bg3);
+  border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+  box-shadow:0 0 12px var(--aglow);
+}
+.auth-loading-text{font-size:12px;color:var(--text2);font-weight:500;letter-spacing:.5px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 .bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
 .bg-radial{position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -133,6 +152,13 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
 </style>
 </head>
 <body>
+
+<!-- AUTH LOADING SCREEN — hides page until Firebase confirms session -->
+<div id="auth-loading">
+  <div class="auth-spinner"></div>
+  <div class="auth-loading-text">Checking your session…</div>
+</div>
+
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
 
@@ -153,7 +179,7 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
   </a>
 </header>
 
-<main class="page">
+<main class="page" id="page-content" style="visibility:hidden">
 
   <div class="notice" id="notice"><span id="notice-msg"></span><button onclick="this.parentElement.classList.remove('show','err')">✕</button></div>
 
@@ -283,23 +309,40 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
 
   window.AUTH = AUTH
 
-  /* ── Require login ──────────────────────────────────────── */
-  const user = AUTH.requireAuth('login.html')
+  const loadingEl = document.getElementById('auth-loading')
+  const pageEl    = document.getElementById('page-content')
 
-  /* ── Show current plan ──────────────────────────────────── */
-  const banner = document.getElementById('current-plan-banner')
-  if (user) {
-    banner.style.display = 'flex'
-    const isPrem = AUTH.isPremium()
-    document.getElementById('cp-name').textContent  = isPrem ? 'Premium ⭐' : 'Free'
-    document.getElementById('cp-badge').textContent = isPrem ? 'PREMIUM' : 'FREE'
-    document.getElementById('cp-sub').textContent   = isPrem
-      ? 'You already have a premium plan. Upgrade to a higher tier anytime.'
-      : 'Upgrade below to unlock unlimited training.'
-    if (isPrem) document.getElementById('cp-icon').textContent = '⭐'
+  /* ── FIX: requireAuth returns a Promise — must await it ── */
+  let user = null
+  try {
+    user = await AUTH.requireAuth('login.html')
+  } catch (e) {
+    window.location.href = 'login.html'
   }
 
-  /* ── Notice helper ──────────────────────────────────────── */
+  /* If requireAuth redirected (returned null), stop here */
+  if (!user) {
+    window.location.href = 'login.html'
+    // Don't fall through — but module execution may continue briefly
+    throw new Error('Not authenticated')
+  }
+
+  /* Auth confirmed — hide loading screen, show page */
+  loadingEl.classList.add('hidden')
+  pageEl.style.visibility = 'visible'
+
+  /* ── Show current plan ── */
+  const banner = document.getElementById('current-plan-banner')
+  banner.style.display = 'flex'
+  const isPrem = AUTH.isPremium()
+  document.getElementById('cp-name').textContent  = isPrem ? 'Premium ⭐' : 'Free'
+  document.getElementById('cp-badge').textContent = isPrem ? 'PREMIUM' : 'FREE'
+  document.getElementById('cp-sub').textContent   = isPrem
+    ? 'You already have a premium plan. Upgrade to a higher tier anytime.'
+    : 'Upgrade below to unlock unlimited training.'
+  if (isPrem) document.getElementById('cp-icon').textContent = '⭐'
+
+  /* ── Notice helper ── */
   function showNotice(msg, isErr = false) {
     const el = document.getElementById('notice')
     document.getElementById('notice-msg').textContent = msg
@@ -309,20 +352,22 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
     window._nt = setTimeout(() => el.classList.remove('show','err'), 6000)
   }
 
-  /* ── Disable button while processing ────────────────────── */
+  /* ── Disable button while processing ── */
   function setLoading(btnId, on, label) {
     const b = document.getElementById(btnId)
-    b.disabled  = on
-    if (on) b.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .7s linear infinite"></span> Processing…'
-    else    b.textContent = label
+    b.disabled = on
+    if (on) {
+      b.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .7s linear infinite"></span> Processing…'
+    } else {
+      b.textContent = label
+    }
   }
 
-  /* Add spinner keyframe */
   const st = document.createElement('style')
   st.textContent = '@keyframes spin{to{transform:rotate(360deg)}}'
   document.head.appendChild(st)
 
-  /* ── Wire up upgrade buttons ─────────────────────────────── */
+  /* ── Upgrade handler ── */
   async function handleUpgrade(planId) {
     const plan   = PLANS[planId]
     const btnMap = { student:'btn-student', coach:'btn-coach', school:'btn-school' }
@@ -336,7 +381,6 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
       name  : user?.username || 'Athlete',
       email : user?.email    || '',
       onUpgraded: async ({ planId: pid, paymentId }) => {
-        /* Write premium to Firebase */
         const planName = pid === 'school' ? 'school' : 'premium'
         if (AUTH.upgradePlan) {
           await AUTH.upgradePlan(null, planName)
