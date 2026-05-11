@@ -1,7 +1,12 @@
 /* ============================================================
-   Shuttlestepz — auth.js  (V2)
-   Thin wrapper around database.js
-   Keeps window.AUTH API so all pages work without changes.
+   Shuttlestepz — auth.js  (V2 — FIXED)
+   
+   KEY FIXES:
+   1. requireAuth timeout increased 4s → 6s (Firebase can be slow on mobile)
+   2. requireAuth now polls immediately AND listens for event — whichever wins
+   3. setPersistence(LOCAL) called at login/signup so session survives navigation
+   4. Cache uses localStorage (persists across tabs/navigation) in addition
+      to sessionStorage (which clears on new tab)
    ============================================================ */
 
 import DB from './database.js'
@@ -12,11 +17,42 @@ const CREATOR_EMAILS = [
   'techycoder1@gmail.com',
 ]
 
-/* ── Session cache ───────────────────────────────────────────── */
+/* ── Dual-layer session cache ────────────────────────────────── */
+/*
+   FIX: sessionStorage is cleared when the user opens a NEW TAB or navigates
+   via window.location.href in some browsers.
+   Using localStorage as primary + sessionStorage as secondary ensures
+   the cache survives page navigation (upgrade.html → dashboard.html etc.)
+*/
 const CACHE_KEY = 'ssz_v2_user'
-function getCache()   { try { return JSON.parse(sessionStorage.getItem(CACHE_KEY)) } catch { return null } }
-function setCache(u)  { sessionStorage.setItem(CACHE_KEY, JSON.stringify(u)) }
-function clearCache() { sessionStorage.removeItem(CACHE_KEY) }
+
+function getCache() {
+  try {
+    // Try sessionStorage first (fastest, most up-to-date)
+    const s = sessionStorage.getItem(CACHE_KEY)
+    if (s) return JSON.parse(s)
+    // Fall back to localStorage (survives navigation)
+    const l = localStorage.getItem(CACHE_KEY)
+    if (l) {
+      const parsed = JSON.parse(l)
+      // Mirror back to sessionStorage
+      sessionStorage.setItem(CACHE_KEY, l)
+      return parsed
+    }
+    return null
+  } catch { return null }
+}
+
+function setCache(u) {
+  const str = JSON.stringify(u)
+  sessionStorage.setItem(CACHE_KEY, str)
+  localStorage.setItem(CACHE_KEY, str)   // ← persists across navigation
+}
+
+function clearCache() {
+  sessionStorage.removeItem(CACHE_KEY)
+  localStorage.removeItem(CACHE_KEY)
+}
 
 /* ── XP / Level ──────────────────────────────────────────────── */
 const XP_THRESH = [0, 500, 1200, 2200, 3500, 5200, 7200, 9800, 13000, 17000, 22000]
@@ -38,7 +74,12 @@ const FREE_LIMIT = 5
 
 /* ── Firebase auth state → populate cache ────────────────────── */
 DB.onAuthReady(async (fbUser) => {
-  if (!fbUser) { clearCache(); return }
+  if (!fbUser) {
+    clearCache()
+    // Dispatch "no user" event so requireAuth can resolve immediately
+    window.dispatchEvent(new CustomEvent('ssz-no-user'))
+    return
+  }
   try {
     const p   = await DB.getUserProfile(fbUser.uid)
     const lvl = calcLevelInfo(p.xp || 0)
@@ -63,6 +104,8 @@ DB.onAuthReady(async (fbUser) => {
     window.dispatchEvent(new CustomEvent('ssz-user-ready', { detail: getCache() }))
   } catch(e) {
     console.error('[AUTH] profile load failed', e)
+    // Still dispatch no-user so pages don't hang
+    window.dispatchEvent(new CustomEvent('ssz-no-user'))
   }
 })
 
@@ -112,60 +155,60 @@ const AUTH = {
   // ── Guards ────────────────────────────────────────────────
 
   /*
-   * FIX: requireAuth was synchronous — read cache, redirect if null.
-   * Problem: on page load, DB.onAuthReady hasn't fired yet, so cache
-   * is empty even for logged-in users → instant redirect to login.
+   * FIX: requireAuth — returns a Promise that resolves with the user object
+   * once Firebase has confirmed the session, or redirects to login if not
+   * authenticated.
    *
-   * Fix: wait up to 4 seconds for either:
-   *   a) cache to be populated by DB.onAuthReady  (happy path)
-   *   b) Firebase to confirm no user (genuinely logged out)
-   * Then decide whether to redirect or resolve with the user.
+   * ALWAYS await this: `const user = await AUTH.requireAuth('login.html')`
+   *
+   * Timeline:
+   *   - If cache exists immediately → resolve in <1ms
+   *   - If Firebase fires ssz-user-ready → resolve when it fires (typ. 500-1500ms)
+   *   - If Firebase fires ssz-no-user → redirect immediately
+   *   - If nothing after 6s → assume not logged in → redirect
    */
   requireAuth(redirect = 'login.html') {
     return new Promise((resolve) => {
-      // Already cached — resolve immediately
+      // ── Fast path: cache already populated ──
       const cached = getCache()
       if (cached) { resolve(cached); return }
 
-      // Wait for ssz-user-ready or a confirmed "no user" state
       let resolved = false
 
-      // Listen for successful auth population
-      const onReady = (e) => {
+      function done(user) {
         if (resolved) return
         resolved = true
         window.removeEventListener('ssz-user-ready', onReady)
-        resolve(e.detail)
+        window.removeEventListener('ssz-no-user',    onNoUser)
+        clearInterval(poll)
+        clearTimeout(timer)
+        if (user) {
+          resolve(user)
+        } else {
+          window.location.href = redirect
+          resolve(null)
+        }
       }
+
+      // ── Listen for auth success ──
+      const onReady = (e) => done(e.detail)
       window.addEventListener('ssz-user-ready', onReady)
 
-      // Also poll the cache directly every 100ms as a fallback
-      // (covers cases where the event was fired before this listener attached)
+      // ── Listen for confirmed "no user" ──
+      const onNoUser = () => done(null)
+      window.addEventListener('ssz-no-user', onNoUser)
+
+      // ── Poll cache every 80ms (catches race where event fired before listener) ──
       const poll = setInterval(() => {
         const u = getCache()
-        if (u && !resolved) {
-          resolved = true
-          clearInterval(poll)
-          window.removeEventListener('ssz-user-ready', onReady)
-          resolve(u)
-        }
-      }, 100)
+        if (u) done(u)
+      }, 80)
 
-      // Timeout: if nothing after 4s, user is genuinely not logged in
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true
-          clearInterval(poll)
-          window.removeEventListener('ssz-user-ready', onReady)
-          // Only redirect if still no cache
-          if (!getCache()) {
-            window.location.href = redirect
-            resolve(null)
-          } else {
-            resolve(getCache())
-          }
-        }
-      }, 4000)
+      // ── Timeout: 6s (increased from 4s for slow mobile connections) ──
+      const timer = setTimeout(() => {
+        const u = getCache()
+        done(u || null)
+      }, 6000)
     })
   },
 
