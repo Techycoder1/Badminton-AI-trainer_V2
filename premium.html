@@ -54,6 +54,9 @@ body{
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+/* Sit above canvas */
+nav,section,.sec,.hero,footer{position:relative;z-index:1}
+
 
 /* =========================================================
    LABEL STYLE — ALL CAPS tracked, like "ZONE FOCUS", "LIVE STATS"
@@ -862,6 +865,7 @@ section{position:relative;z-index:1}
 <!-- =========================================================
      NAV
      ========================================================= -->
+<canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.4"></canvas>
 <nav id="nav">
   <div class="nav-inner">
     <button class="nav-menu-icon" aria-label="Menu" id="hamburger">
@@ -1702,6 +1706,64 @@ setInterval(()=>{
   xp+=Math.floor(Math.random()*3)
   if(xp>0)xpEl.innerHTML=`<span class="xp-dot"></span> ${xp} XP`
 },4000)
+
+/* =========================================================
+   CANVAS — subtle grid + particle background matching app
+   ========================================================= */
+(function(){
+  const c=document.getElementById('bgCanvas')
+  if(!c)return
+  const ctx=c.getContext('2d')
+  let W,H
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight}
+  resize()
+  addEventListener('resize',resize)
+
+  // Particles
+  const pts=Array.from({length:60},()=>({
+    x:Math.random()*1920,y:Math.random()*1080,
+    vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,
+    a:Math.random()*.3+.05,r:Math.random()*1.5+.5
+  }))
+
+  function frame(){
+    ctx.clearRect(0,0,W,H)
+    // Grid
+    ctx.strokeStyle='rgba(34,197,94,0.03)'
+    ctx.lineWidth=1
+    const step=80
+    for(let x=0;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+    for(let y=0;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    // Particles
+    pts.forEach(p=>{
+      p.x+=p.vx;p.y+=p.vy
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0
+      if(p.y<0)p.y=H;if(p.y>H)p.y=0
+      ctx.beginPath()
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2)
+      ctx.fillStyle=`rgba(34,197,94,${p.a})`
+      ctx.fill()
+    })
+    // Connections
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y
+        const d=Math.sqrt(dx*dx+dy*dy)
+        if(d<120){
+          ctx.beginPath()
+          ctx.moveTo(pts[i].x,pts[i].y)
+          ctx.lineTo(pts[j].x,pts[j].y)
+          ctx.strokeStyle=`rgba(34,197,94,${.04*(1-d/120)})`
+          ctx.lineWidth=.5
+          ctx.stroke()
+        }
+      }
+    }
+    requestAnimationFrame(frame)
+  }
+  frame()
+})()
+
 </script>
 </body>
 </html>
