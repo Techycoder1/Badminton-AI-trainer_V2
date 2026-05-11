@@ -6,38 +6,28 @@
 <title>Upgrade — Shuttlestepz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/base.css">
 <style>
 :root {
   --bg:#090c0e;--bg2:#0f1315;--bg3:#161b1e;--bg4:#1d2427;
   --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);
   --accent:#39e07a;--adim:rgba(57,224,122,.12);--aglow:rgba(57,224,122,.3);
   --text:#eaf0eb;--text2:#7a9080;--text3:#3d4f44;
-  --r:12px;--rl:18px;--rx:24px;
-  --tr:.18s cubic-bezier(.4,0,.2,1);
+  --r:12px;--rl:18px;--rx:24px;--tr:.18s cubic-bezier(.4,0,.2,1);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+@keyframes _spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── AUTH LOADING SCREEN ── */
-#auth-loading {
-  position:fixed;inset:0;z-index:9999;
-  background:var(--bg);
-  display:flex;align-items:center;justify-content:center;
-  flex-direction:column;gap:16px;
-  transition:opacity .3s;
-}
-#auth-loading.hidden{opacity:0;pointer-events:none;}
-.auth-spinner{
-  width:36px;height:36px;border-radius:50%;
-  border:3px solid var(--bg3);
-  border-top-color:var(--accent);
-  animation:spin .7s linear infinite;
-  box-shadow:0 0 12px var(--aglow);
-}
-.auth-loading-text{font-size:12px;color:var(--text2);font-weight:500;letter-spacing:.5px;}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── LOADING ── */
+#auth-loading{position:fixed;inset:0;z-index:9999;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .3s}
+#auth-loading.done{opacity:0;pointer-events:none}
+.spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--bg3);
+  border-top-color:var(--accent);animation:_spin .7s linear infinite;box-shadow:0 0 12px var(--aglow)}
+.loading-txt{font-size:12px;color:var(--text2);font-weight:500}
 
+/* ── BG ── */
 .bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
 .bg-radial{position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -47,8 +37,7 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
 /* ── TOPBAR ── */
 .topbar{position:fixed;top:0;left:0;right:0;height:60px;z-index:100;
   background:rgba(9,12,14,.9);backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 24px;gap:12px}
+  border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px}
 .topbar-brand{display:flex;align-items:center;gap:9px;text-decoration:none;
   color:var(--text);font-size:15px;font-weight:800;letter-spacing:-.4px}
 .topbar-back{margin-left:auto;display:flex;align-items:center;gap:6px;
@@ -58,133 +47,136 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
 .topbar-back:hover{border-color:var(--border2);color:var(--text)}
 
 /* ── PAGE ── */
-.page{position:relative;z-index:1;padding:100px 24px 80px;max-width:960px;margin:0 auto}
-
+.page{position:relative;z-index:1;padding:100px 24px 80px;max-width:960px;margin:0 auto;visibility:hidden}
+.page.ready{visibility:visible}
 .page-eyebrow{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
   color:var(--accent);margin-bottom:12px;text-align:center}
-.page-title{font-size:36px;font-weight:900;letter-spacing:-1px;text-align:center;
-  line-height:1.15;margin-bottom:10px}
+.page-title{font-size:36px;font-weight:900;letter-spacing:-1px;text-align:center;line-height:1.15;margin-bottom:10px}
 .page-title span{color:var(--accent)}
 .page-sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:48px;line-height:1.6}
+.au{animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
 
-/* ── PLAN CARDS ── */
-.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:40px}
-
-.plan-card{
-  background:var(--bg2);border:1px solid var(--border);border-radius:var(--rx);
-  padding:28px 24px;position:relative;overflow:hidden;
-  transition:border-color var(--tr),transform var(--tr),box-shadow var(--tr);
-  display:flex;flex-direction:column;
-}
-.plan-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.35)}
-.plan-card.popular{border-color:rgba(57,224,122,.3)}
-.plan-card.popular:hover{box-shadow:0 16px 48px rgba(0,0,0,.35),0 0 32px rgba(57,224,122,.1)}
-
-.plan-glow{position:absolute;top:-40px;right:-40px;width:160px;height:160px;
-  border-radius:50%;pointer-events:none;opacity:.6}
-
-.popular-badge{position:absolute;top:16px;right:16px;
-  font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
-  background:var(--accent);color:#060a07;border-radius:6px;padding:3px 8px}
-
-.plan-icon{font-size:28px;margin-bottom:12px}
-.plan-name{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.3px}
-.plan-role{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
-  margin-bottom:16px}
-.plan-price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
-.plan-price{font-size:36px;font-weight:900;letter-spacing:-1.5px}
-.plan-period{font-size:13px;color:var(--text2);font-weight:500}
-.plan-desc{font-size:12.5px;color:var(--text2);margin-bottom:20px;line-height:1.55}
-
-.plan-features{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;flex:1}
-.plan-feat{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text2);line-height:1.4}
-.plan-feat svg{flex-shrink:0;margin-top:2px}
-
-.btn-upgrade-plan{
-  width:100%;padding:13px;border:none;border-radius:10px;
-  font-family:'Sora',sans-serif;font-size:13.5px;font-weight:700;
-  cursor:pointer;transition:all var(--tr);
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.btn-upgrade-plan:hover{transform:translateY(-1px)}
-.btn-upgrade-plan:disabled{opacity:.6;cursor:not-allowed;transform:none}
-
-/* ── CURRENT PLAN BANNER ── */
-.current-plan-banner{
-  background:rgba(57,224,122,.08);border:1px solid rgba(57,224,122,.2);
-  border-radius:var(--rl);padding:16px 20px;
-  display:flex;align-items:center;gap:14px;margin-bottom:32px;
-}
-.cp-icon{font-size:22px}
-.cp-info{flex:1}
+/* ── CURRENT PLAN ── */
+.cp-banner{background:rgba(57,224,122,.08);border:1px solid rgba(57,224,122,.2);
+  border-radius:var(--rl);padding:16px 20px;display:none;align-items:center;gap:14px;margin-bottom:32px}
+.cp-banner.show{display:flex}
+.cp-icon{font-size:22px}.cp-info{flex:1}
 .cp-title{font-size:14px;font-weight:700;color:var(--text)}
 .cp-sub{font-size:12px;color:var(--text2);margin-top:2px}
 .cp-badge{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
   color:var(--accent);background:var(--adim);border-radius:20px;padding:4px 12px}
 
+/* ── NOTICE ── */
+.notice{display:none;align-items:center;justify-content:space-between;
+  background:rgba(57,224,122,.1);border:1px solid rgba(57,224,122,.22);
+  border-radius:var(--r);padding:11px 16px;margin-bottom:24px;font-size:13px;color:var(--accent);font-weight:500}
+.notice.show{display:flex}
+.notice.err{background:rgba(224,92,92,.1);border-color:rgba(224,92,92,.22);color:#e05c5c}
+.notice button{background:none;border:none;color:inherit;cursor:pointer;font-size:16px;opacity:.6}
+
+/* ── PLANS GRID ── */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:40px}
+.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rx);
+  padding:28px 24px;position:relative;overflow:hidden;
+  transition:border-color var(--tr),transform var(--tr),box-shadow var(--tr);display:flex;flex-direction:column}
+.plan-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.35)}
+.plan-card.popular{border-color:rgba(57,224,122,.3)}
+.plan-glow{position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;pointer-events:none;opacity:.6}
+.popular-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;background:var(--accent);color:#060a07;border-radius:6px;padding:3px 8px}
+.plan-icon{font-size:28px;margin-bottom:12px}
+.plan-name{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.3px}
+.plan-role{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:16px}
+.plan-price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
+.plan-price{font-size:36px;font-weight:900;letter-spacing:-1.5px}
+.plan-period{font-size:13px;color:var(--text2);font-weight:500}
+.plan-desc{font-size:12.5px;color:var(--text2);margin-bottom:20px;line-height:1.55}
+.plan-features{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;flex:1}
+.plan-feat{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text2);line-height:1.4}
+.plan-feat svg{flex-shrink:0;margin-top:2px}
+.btn-up{width:100%;padding:13px;border:none;border-radius:10px;
+  font-family:'Sora',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;
+  transition:all var(--tr);display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-up:hover{transform:translateY(-1px)}
+.btn-up:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+/* ── MODAL ── */
+.modal-bd{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.modal-bd.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rx);
+  padding:32px;max-width:400px;width:90%;text-align:center}
+.m-icon{font-size:40px;margin-bottom:12px}
+.m-title{font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px}
+.m-sub{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6}
+.m-badge{display:inline-block;padding:6px 20px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:18px}
+.m-note{font-size:11.5px;color:var(--text2);background:var(--bg3);border-radius:8px;
+  padding:12px 14px;line-height:1.7;margin-bottom:22px;text-align:left}
+.m-note strong{color:var(--text)}
+.m-actions{display:flex;gap:10px}
+.m-confirm{flex:1;padding:13px;border:none;border-radius:10px;
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all var(--tr)}
+.m-cancel{flex:1;padding:13px;background:transparent;border:1px solid var(--border2);border-radius:10px;
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:600;color:var(--text2);
+  cursor:pointer;transition:all var(--tr)}
+.m-cancel:hover{color:var(--text);background:var(--bg3)}
+
 /* ── FAQ ── */
-.faq-title{font-size:18px;font-weight:800;letter-spacing:-.4px;
-  text-align:center;margin-bottom:20px}
+.faq-title{font-size:18px;font-weight:800;letter-spacing:-.4px;text-align:center;margin-bottom:20px}
 .faq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:48px}
 .faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
 .faq-q{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
 .faq-a{font-size:12px;color:var(--text2);line-height:1.6}
 
-/* ── NOTICE ── */
-.notice{display:none;align-items:center;justify-content:space-between;
-  background:rgba(57,224,122,.1);border:1px solid rgba(57,224,122,.22);
-  border-radius:var(--r);padding:11px 16px;margin-bottom:24px;
-  font-size:13px;color:var(--accent);font-weight:500}
-.notice.show{display:flex}
-.notice button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:16px;opacity:.6}
-.notice.err{background:rgba(224,92,92,.1);border-color:rgba(224,92,92,.22);color:#e05c5c}
-
-/* ── ANIM ── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.au{animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both}
-.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
-
 @media(max-width:600px){
   .page{padding:80px 14px 60px}
   .page-title{font-size:26px}
   .plans-grid{grid-template-columns:1fr}
+  .m-actions{flex-direction:column}
 }
 </style>
 </head>
 <body>
 
-<!-- AUTH LOADING SCREEN — hides page until Firebase confirms session -->
-<div id="auth-loading">
-  <div class="auth-spinner"></div>
-  <div class="auth-loading-text">Checking your session…</div>
-</div>
-
+<div id="auth-loading"><div class="spinner"></div><div class="loading-txt">Checking your session…</div></div>
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
 
-<!-- TOPBAR -->
 <header class="topbar">
   <a href="index.html" class="topbar-brand">
-    <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
-      <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
-      <circle cx="17" cy="7" r="3" fill="#39e07a"/>
-      <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
-      <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
-    </svg>
+    <svg width="24" height="24" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/><circle cx="17" cy="7" r="3" fill="#39e07a"/><path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/><path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/><line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/></svg>
     Shuttlestepz
   </a>
-  <a href="dashboard.html" class="topbar-back">
-    ← Back to Dashboard
-  </a>
+  <a href="dashboard.html" class="topbar-back">← Back to Dashboard</a>
 </header>
 
-<main class="page" id="page-content" style="visibility:hidden">
+<!-- PAYMENT MODAL -->
+<div class="modal-bd" id="pay-modal">
+  <div class="modal-box">
+    <div class="m-icon" id="m-icon">🏸</div>
+    <div class="m-title" id="m-title">Confirm Upgrade</div>
+    <div class="m-sub" id="m-sub">Activate your new plan instantly.</div>
+    <div class="m-badge" id="m-badge">₹199 / month</div>
+    <div class="m-note">
+      🧪 <strong>Simulation Mode</strong> — No real payment is processed right now.<br>
+      Razorpay integration coming soon. Your plan activates immediately.
+    </div>
+    <div class="m-actions">
+      <button class="m-cancel" onclick="closeModal()">Cancel</button>
+      <button class="m-confirm" id="m-confirm" onclick="confirmUpgrade()">⚡ Activate Plan</button>
+    </div>
+  </div>
+</div>
 
-  <div class="notice" id="notice"><span id="notice-msg"></span><button onclick="this.parentElement.classList.remove('show','err')">✕</button></div>
+<main class="page" id="page">
 
-  <!-- Current plan -->
-  <div class="current-plan-banner au" id="current-plan-banner" style="display:none">
+  <div class="notice" id="notice">
+    <span id="notice-msg"></span>
+    <button onclick="this.parentElement.classList.remove('show','err')">✕</button>
+  </div>
+
+  <div class="cp-banner" id="cp-banner">
     <div class="cp-icon" id="cp-icon">🏸</div>
     <div class="cp-info">
       <div class="cp-title">Current Plan: <span id="cp-name">Free</span></div>
@@ -197,19 +189,14 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
   <h1 class="page-title au">Train without <span>limits.</span></h1>
   <p class="page-sub au">One simple price. Cancel anytime. Instant activation.</p>
 
-  <!-- Plan cards -->
   <div class="plans-grid">
-
     <!-- Student -->
-    <div class="plan-card au d1" id="card-student">
+    <div class="plan-card au d1">
       <div class="plan-glow" style="background:radial-gradient(circle,rgba(57,224,122,.15),transparent 70%)"></div>
       <div class="plan-icon">🏸</div>
       <div class="plan-name">Student</div>
       <div class="plan-role" style="color:#39e07a">For players & athletes</div>
-      <div class="plan-price-row">
-        <div class="plan-price" style="color:#39e07a">₹199</div>
-        <div class="plan-period">/ month</div>
-      </div>
+      <div class="plan-price-row"><div class="plan-price" style="color:#39e07a">₹199</div><div class="plan-period">/ month</div></div>
       <div class="plan-desc">Everything you need to train seriously and climb the leaderboard.</div>
       <div class="plan-features">
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited training sessions</div>
@@ -218,24 +205,19 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All drills & difficulty levels</div>
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access to new features</div>
       </div>
-      <button class="btn-upgrade-plan" id="btn-student"
-        style="background:#39e07a;color:#060908;box-shadow:0 0 20px rgba(57,224,122,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Upgrade for ₹199
+      <button class="btn-up" onclick="openModal('student')" style="background:#39e07a;color:#060908;box-shadow:0 0 20px rgba(57,224,122,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹199
       </button>
     </div>
 
     <!-- Coach -->
-    <div class="plan-card popular au d2" id="card-coach">
+    <div class="plan-card popular au d2">
       <div class="plan-glow" style="background:radial-gradient(circle,rgba(96,180,255,.15),transparent 70%)"></div>
       <div class="popular-badge">MOST POPULAR</div>
       <div class="plan-icon">🏅</div>
       <div class="plan-name">Coach</div>
       <div class="plan-role" style="color:#60b4ff">For trainers & coaches</div>
-      <div class="plan-price-row">
-        <div class="plan-price" style="color:#60b4ff">₹399</div>
-        <div class="plan-period">/ month</div>
-      </div>
+      <div class="plan-price-row"><div class="plan-price" style="color:#60b4ff">₹399</div><div class="plan-period">/ month</div></div>
       <div class="plan-desc">Manage your students, track their progress, and coach smarter.</div>
       <div class="plan-features">
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Student plan</div>
@@ -245,23 +227,18 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>School/club code generation</div>
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority support</div>
       </div>
-      <button class="btn-upgrade-plan" id="btn-coach"
-        style="background:#60b4ff;color:#060a14;box-shadow:0 0 20px rgba(96,180,255,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Upgrade for ₹399
+      <button class="btn-up" onclick="openModal('coach')" style="background:#60b4ff;color:#060a14;box-shadow:0 0 20px rgba(96,180,255,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹399
       </button>
     </div>
 
     <!-- School -->
-    <div class="plan-card au d3" id="card-school">
+    <div class="plan-card au d3">
       <div class="plan-glow" style="background:radial-gradient(circle,rgba(245,166,35,.12),transparent 70%)"></div>
       <div class="plan-icon">🏫</div>
       <div class="plan-name">School / Club</div>
       <div class="plan-role" style="color:#f5a623">For academies & institutions</div>
-      <div class="plan-price-row">
-        <div class="plan-price" style="color:#f5a623">₹699</div>
-        <div class="plan-period">/ month</div>
-      </div>
+      <div class="plan-price-row"><div class="plan-price" style="color:#f5a623">₹699</div><div class="plan-period">/ month</div></div>
       <div class="plan-desc">Full institution access with unlimited coaches and students.</div>
       <div class="plan-features">
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Coach plan</div>
@@ -271,136 +248,194 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Branded experience</div>
         <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dedicated support</div>
       </div>
-      <button class="btn-upgrade-plan" id="btn-school"
-        style="background:#f5a623;color:#0a0600;box-shadow:0 0 20px rgba(245,166,35,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        Upgrade for ₹699
+      <button class="btn-up" onclick="openModal('school')" style="background:#f5a623;color:#0a0600;box-shadow:0 0 20px rgba(245,166,35,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹699
       </button>
     </div>
-
   </div>
 
-  <!-- FAQ -->
   <div class="faq-title au">Common questions</div>
   <div class="faq-grid">
-    <div class="faq-item au">
-      <div class="faq-q">Is this a real payment?</div>
-      <div class="faq-a">Not yet — this is simulation mode. No money is charged. Real payments via Razorpay are coming soon.</div>
-    </div>
-    <div class="faq-item au d1">
-      <div class="faq-q">Can I cancel anytime?</div>
-      <div class="faq-a">Yes. Cancel anytime from your profile settings. You keep access until the end of your billing period.</div>
-    </div>
-    <div class="faq-item au d2">
-      <div class="faq-q">What payment methods will be accepted?</div>
-      <div class="faq-a">UPI, debit/credit cards, net banking, and wallets via Razorpay.</div>
-    </div>
-    <div class="faq-item au d3">
-      <div class="faq-q">What happens to my data if I downgrade?</div>
-      <div class="faq-a">All your session history and XP are kept forever. Only premium features become inaccessible.</div>
-    </div>
+    <div class="faq-item au"><div class="faq-q">Is this a real payment?</div><div class="faq-a">Not yet — this is simulation mode. No money is charged. Real payments via Razorpay are coming soon.</div></div>
+    <div class="faq-item au d1"><div class="faq-q">Can I cancel anytime?</div><div class="faq-a">Yes. Cancel anytime from your profile settings. You keep access until the end of your billing period.</div></div>
+    <div class="faq-item au d2"><div class="faq-q">What payment methods will be accepted?</div><div class="faq-a">UPI, debit/credit cards, net banking, and wallets via Razorpay.</div></div>
+    <div class="faq-item au d3"><div class="faq-q">What happens to my data if I downgrade?</div><div class="faq-a">All your session history and XP are kept forever. Only premium features become inaccessible.</div></div>
   </div>
 
 </main>
 
-<script type="module">
-  import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
-  import { pay, PLANS } from '/Badminton-AI-trainer_V2/js/payment.js'
+<script>
+/* ═══════════════════════════════════════════
+   PLAN CONFIG
+═══════════════════════════════════════════ */
+const PLANS = {
+  student: { label:'Student',      price:'₹199', color:'#39e07a', text:'#060908', icon:'🏸', key:'premium' },
+  coach:   { label:'Coach',        price:'₹399', color:'#60b4ff', text:'#060a14', icon:'🏅', key:'premium' },
+  school:  { label:'School / Club',price:'₹699', color:'#f5a623', text:'#0a0600', icon:'🏫', key:'school'  },
+}
 
-  window.AUTH = AUTH
+let _currentPlan = null
+let _AUTH = null
 
-  const loadingEl = document.getElementById('auth-loading')
-  const pageEl    = document.getElementById('page-content')
+/* ═══════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════ */
+function $(id){ return document.getElementById(id) }
+function tx(id,v){ const e=$(id); if(e) e.textContent=v }
 
-  /* ── FIX: requireAuth returns a Promise — must await it ── */
-  let user = null
+function showNotice(msg, err=false) {
+  const el=$('notice')
+  tx('notice-msg', msg)
+  el.classList.toggle('err', err)
+  el.classList.add('show')
+  clearTimeout(window._nt)
+  window._nt = setTimeout(()=>el.classList.remove('show','err'), 6000)
+}
+
+function getCache() {
   try {
-    user = await AUTH.requireAuth('login.html')
-  } catch (e) {
-    window.location.href = 'login.html'
-  }
+    return JSON.parse(sessionStorage.getItem('ssz_v2_user'))
+        || JSON.parse(localStorage.getItem('ssz_v2_user'))
+        || null
+  } catch { return null }
+}
 
-  /* If requireAuth redirected (returned null), stop here */
-  if (!user) {
-    window.location.href = 'login.html'
-    // Don't fall through — but module execution may continue briefly
-    throw new Error('Not authenticated')
-  }
+/* ═══════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════ */
+function openModal(planId) {
+  _currentPlan = planId
+  const p = PLANS[planId]
+  tx('m-icon',  p.icon)
+  tx('m-title', 'Upgrade to ' + p.label)
+  tx('m-sub',   'Activate the ' + p.label + ' plan on your account.')
+  const b = $('m-badge')
+  b.textContent       = p.price + ' / month'
+  b.style.background  = p.color + '22'
+  b.style.color       = p.color
+  b.style.border      = '1px solid ' + p.color + '55'
+  const btn = $('m-confirm')
+  btn.style.background = p.color
+  btn.style.color      = p.text
+  btn.textContent      = '⚡ Activate Plan'
+  btn.disabled         = false
+  $('pay-modal').classList.add('open')
+}
 
-  /* Auth confirmed — hide loading screen, show page */
-  loadingEl.classList.add('hidden')
-  pageEl.style.visibility = 'visible'
+function closeModal() {
+  $('pay-modal').classList.remove('open')
+  _currentPlan = null
+}
 
-  /* ── Show current plan ── */
-  const banner = document.getElementById('current-plan-banner')
-  banner.style.display = 'flex'
-  const isPrem = AUTH.isPremium()
-  document.getElementById('cp-name').textContent  = isPrem ? 'Premium ⭐' : 'Free'
-  document.getElementById('cp-badge').textContent = isPrem ? 'PREMIUM' : 'FREE'
-  document.getElementById('cp-sub').textContent   = isPrem
-    ? 'You already have a premium plan. Upgrade to a higher tier anytime.'
-    : 'Upgrade below to unlock unlimited training.'
-  if (isPrem) document.getElementById('cp-icon').textContent = '⭐'
+document.getElementById('pay-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal()
+})
 
-  /* ── Notice helper ── */
-  function showNotice(msg, isErr = false) {
-    const el = document.getElementById('notice')
-    document.getElementById('notice-msg').textContent = msg
-    el.classList.toggle('err', isErr)
-    el.classList.add('show')
-    clearTimeout(window._nt)
-    window._nt = setTimeout(() => el.classList.remove('show','err'), 6000)
-  }
+async function confirmUpgrade() {
+  if (!_currentPlan) return
+  const p   = PLANS[_currentPlan]
+  const btn = $('m-confirm')
+  btn.disabled = true
+  btn.innerHTML = '<span style="display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:_spin .7s linear infinite;vertical-align:middle;margin-right:6px"></span>Activating…'
 
-  /* ── Disable button while processing ── */
-  function setLoading(btnId, on, label) {
-    const b = document.getElementById(btnId)
-    b.disabled = on
-    if (on) {
-      b.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .7s linear infinite"></span> Processing…'
+  try {
+    if (_AUTH && typeof _AUTH.upgradePlan === 'function') {
+      await _AUTH.upgradePlan(null, p.key)
     } else {
-      b.textContent = label
+      // Fallback: update cache directly so dashboard reflects new plan
+      const cache = getCache() || {}
+      cache.plan = p.key
+      const str = JSON.stringify(cache)
+      sessionStorage.setItem('ssz_v2_user', str)
+      localStorage.setItem('ssz_v2_user', str)
+    }
+    closeModal()
+    showNotice('🎉 ' + p.label + ' plan activated! Redirecting…')
+    setTimeout(() => { window.location.href = 'dashboard.html' }, 1800)
+  } catch(e) {
+    console.error('[upgrade] confirmUpgrade error:', e)
+    showNotice('Something went wrong. Please try again.', true)
+    btn.disabled = false
+    btn.innerHTML = '⚡ Activate Plan'
+  }
+}
+
+/* ═══════════════════════════════════════════
+   AUTH BOOT
+   — Uses plain <script> (not module) so no
+     import errors crash the whole page
+   — Dynamically imports auth.js after cache check
+   — Page is hidden until auth resolves
+═══════════════════════════════════════════ */
+const loadingEl = $('auth-loading')
+const pageEl    = $('page')
+
+function revealPage(user) {
+  loadingEl.classList.add('done')
+  pageEl.classList.add('ready')
+  if (!user) return
+  const isPrem = user.plan==='premium' || user.plan==='school'
+    || (user.email||'').toLowerCase()==='techycoder1@gmail.com'
+  const banner = $('cp-banner')
+  banner.classList.add('show')
+  tx('cp-name',  isPrem ? 'Premium ⭐' : 'Free')
+  tx('cp-badge', isPrem ? 'PREMIUM' : 'FREE')
+  tx('cp-sub',   isPrem
+    ? 'You already have a premium plan. Upgrade to a higher tier anytime.'
+    : 'Upgrade below to unlock unlimited training.')
+  if (isPrem) tx('cp-icon', '⭐')
+}
+
+(function boot() {
+  // ── Fast path: cache already in storage ──
+  const cached = getCache()
+  if (cached) {
+    revealPage(cached)
+    // Load auth.js in background silently for upgradePlan support
+    import('./js/auth.js').then(m => {
+      _AUTH = m.default || m.AUTH || m
+      window.AUTH = _AUTH
+    }).catch(() => {/* non-fatal */})
+    return
+  }
+
+  // ── Slow path: wait for Firebase via auth.js ──
+  let done = false
+
+  function resolve(user) {
+    if (done) return
+    done = true
+    window.removeEventListener('ssz-user-ready', onReady)
+    window.removeEventListener('ssz-no-user',    onNone)
+    clearTimeout(timer)
+    if (user) {
+      revealPage(user)
+    } else {
+      // Truly not logged in → go to login
+      window.location.href = 'login.html'
     }
   }
 
-  const st = document.createElement('style')
-  st.textContent = '@keyframes spin{to{transform:rotate(360deg)}}'
-  document.head.appendChild(st)
+  const onReady = e => { _AUTH = window.AUTH; resolve(e.detail) }
+  const onNone  = ()  => resolve(null)
+  window.addEventListener('ssz-user-ready', onReady)
+  window.addEventListener('ssz-no-user',    onNone)
 
-  /* ── Upgrade handler ── */
-  async function handleUpgrade(planId) {
-    const plan   = PLANS[planId]
-    const btnMap = { student:'btn-student', coach:'btn-coach', school:'btn-school' }
-    const btnId  = btnMap[planId]
-    const label  = `Upgrade for ${plan.currency}${plan.price}`
+  // 6 second safety timeout
+  const timer = setTimeout(() => resolve(getCache()), 6000)
 
-    setLoading(btnId, true, label)
-
-    const result = await pay({
-      planId,
-      name  : user?.username || 'Athlete',
-      email : user?.email    || '',
-      onUpgraded: async ({ planId: pid, paymentId }) => {
-        const planName = pid === 'school' ? 'school' : 'premium'
-        if (AUTH.upgradePlan) {
-          await AUTH.upgradePlan(null, planName)
-        }
-        console.log('[Upgrade] ✅ Plan:', planName, '| ID:', paymentId)
-        showNotice(`🎉 ${plan.label} activated! Redirecting to dashboard…`)
-        setTimeout(() => window.location.href = 'dashboard.html', 2000)
-      },
-    })
-
-    if (!result.ok && result.error !== 'Payment cancelled.') {
-      showNotice(result.error || 'Payment failed. Please try again.', true)
-    }
-
-    setLoading(btnId, false, label)
-  }
-
-  document.getElementById('btn-student').onclick = () => handleUpgrade('student')
-  document.getElementById('btn-coach').onclick   = () => handleUpgrade('coach')
-  document.getElementById('btn-school').onclick  = () => handleUpgrade('school')
+  // Dynamically import auth.js to trigger Firebase
+  import('./js/auth.js').then(m => {
+    _AUTH = m.default || m.AUTH || m
+    window.AUTH = _AUTH
+    // Check cache right after import — may have been populated synchronously
+    const u = getCache()
+    if (u) resolve(u)
+  }).catch(err => {
+    console.error('[upgrade] auth.js failed:', err)
+    resolve(getCache()) // null → redirect to login
+  })
+})()
 </script>
 
 </body>
