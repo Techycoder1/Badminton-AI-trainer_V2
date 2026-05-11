@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Premium — Shuttlestepz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* =========================================================
+   DESIGN TOKENS — extracted from app screenshot
+   ========================================================= */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* Backgrounds — very dark, almost black */
+  --bg:       #0c0c0c;
+  --bg-panel: #111111;
+  --bg-card:  #131313;
+  --bg-card2: #161616;
+  --bg-hover: #1a1a1a;
+
+  /* Borders — exact from app */
+  --border:   rgba(255,255,255,0.07);
+  --border-hi:rgba(255,255,255,0.12);
+
+  /* Accents — exact colors from screenshot */
+  --green:    #22c55e;   /* XP, Start Training, active button, timer ring */
+  --green-bg: rgba(34,197,94,0.12);
+  --green-border: rgba(34,197,94,0.3);
+  --red:      #ef4444;   /* Stop button */
+  --red-bg:   rgba(239,68,68,0.12);
+  --red-border:rgba(239,68,68,0.3);
+  --amber:    #f59e0b;   /* Standby */
+  --amber-bg: rgba(245,158,11,0.1);
+
+  /* Text */
+  --t1: #ffffff;
+  --t2: #a1a1aa;   /* muted labels like ZONE FOCUS, LIVE STATS */
+  --t3: #52525b;   /* very muted */
+  --t4: #3f3f46;   /* disabled/placeholder */
+
+  --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  --r:6px;
+  --r-sm:4px;
+  --ease:cubic-bezier(0.4,0,0.2,1);
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--t1);
+  font-family:var(--font);font-size:14px;
+  line-height:1.5;overflow-x:hidden;
+}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}
+
+/* =========================================================
+   LABEL STYLE — ALL CAPS tracked, like "ZONE FOCUS", "LIVE STATS"
+   ========================================================= */
+.label{
+  font-size:10px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--t2);
+}
+
+/* =========================================================
+   NAV — exact match to app topbar
+   ========================================================= */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:900;
+  background:rgba(12,12,12,0.96);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  height:52px;
+}
+.nav-inner{
+  max-width:1140px;margin:0 auto;
+  padding:0 20px;height:52px;
+  display:flex;align-items:center;gap:24px;
+}
+
+/* Hamburger icon — matches app */
+.nav-menu-icon{
+  display:flex;flex-direction:column;justify-content:center;
+  gap:4px;width:28px;height:28px;
+  background:none;border:none;cursor:pointer;padding:4px;
+  flex-shrink:0;
+}
+.nav-menu-icon span{
+  display:block;height:1.5px;
+  background:var(--t2);border-radius:2px;transition:0.2s;
+}
+.nav-menu-icon span:nth-child(1){width:100%}
+.nav-menu-icon span:nth-child(2){width:75%}
+.nav-menu-icon span:nth-child(3){width:50%}
+
+/* Logo — green leaf icon + wordmark */
+.nav-logo{
+  display:flex;align-items:center;gap:8px;
+  text-decoration:none;flex-shrink:0;
+}
+.nav-logo-icon{
+  width:26px;height:26px;
+  background:var(--green);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+}
+.nav-logo-text{
+  font-size:15px;font-weight:700;color:var(--t1);
+  letter-spacing:-0.02em;
+}
+.nav-page-label{
+  font-size:13px;color:var(--t3);
+  font-weight:400;
+}
+
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+
+/* XP badge — green dot + "0 XP" — from app top-right */
+.xp-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg-panel);
+  border:1px solid var(--border);
+  padding:5px 12px;border-radius:5px;
+  font-size:12px;font-weight:600;color:var(--t1);
+}
+.xp-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 6px var(--green);
+}
+
+/* Green "Start Training" style CTA button */
+.btn-green{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--green);color:#000;
+  border:none;padding:7px 14px;border-radius:5px;
+  font-family:var(--font);font-size:12px;font-weight:700;
+  letter-spacing:0.01em;cursor:pointer;
+  transition:opacity 0.2s,transform 0.15s var(--ease);
+}
+.btn-green:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-green svg{width:12px;height:12px}
+
+/* Nav links */
+.nav-links{display:flex;gap:20px}
+.nav-links a{
+  font-size:13px;font-weight:500;color:var(--t2);
+  text-decoration:none;transition:color 0.15s;
+}
+.nav-links a:hover{color:var(--t1)}
+
+/* Mobile menu */
+.mob-menu{
+  display:none;flex-direction:column;
+  background:rgba(12,12,12,0.98);
+  border-bottom:1px solid var(--border);
+  padding:12px 20px 16px;gap:10px;
+}
+.mob-menu a{font-size:14px;color:var(--t2);text-decoration:none;padding:4px 0}
+.mob-menu.open{display:flex}
+
+/* =========================================================
+   BUTTONS — compact, angular, from the app
+   ========================================================= */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 18px;border-radius:var(--r);
+  font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid transparent;
+  transition:all 0.15s var(--ease);text-decoration:none;
+  letter-spacing:0.01em;white-space:nowrap;
+}
+.btn-primary{
+  background:var(--green);color:#000;border-color:var(--green);
+}
+.btn-primary:hover{opacity:0.87;transform:translateY(-1px)}
+.btn-ghost{
+  background:transparent;color:var(--t1);
+  border-color:var(--border-hi);
+}
+.btn-ghost:hover{background:var(--bg-hover);border-color:rgba(255,255,255,0.2)}
+.btn-lg{padding:11px 24px;font-size:14px}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+.btn:hover svg{transform:translateX(2px);transition:transform 0.15s}
+
+/* =========================================================
+   ZONE BUTTON STYLE — from the "ALL / FRONT / BACK" grid
+   ========================================================= */
+.zone-tag{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:4px 10px;border-radius:4px;
+  font-size:10px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;cursor:default;
+  border:1px solid var(--border);color:var(--t2);
+  background:transparent;
+}
+.zone-tag.active{
+  background:var(--green);color:#000;border-color:var(--green);
+}
+
+/* =========================================================
+   STAT CHIP — "ROUND 0/0", "SCORE 0" style from app
+   ========================================================= */
+.stat-chip{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 14px;
+  border:1px solid var(--border);border-radius:var(--r-sm);
+  background:var(--bg-panel);
+  gap:2px;
+}
+.stat-chip .chip-label{
+  font-size:9px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--t2);
+}
+.stat-chip .chip-val{
+  font-size:16px;font-weight:700;color:var(--t1);
+  letter-spacing:-0.02em;
+}
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+.wrap{max-width:1140px;margin:0 auto;padding:0 20px}
+section{position:relative;z-index:1}
+
+/* section spacing */
+.sec{padding:80px 0}
+
+/* =========================================================
+   HERO
+   ========================================================= */
+.hero{
+  padding-top:100px;padding-bottom:72px;
+  border-bottom:1px solid var(--border);
+}
+.hero-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:64px;align-items:center;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-bottom:20px;
+}
+.hero-eyebrow-text{
+  font-size:11px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--green);
+}
+.hero h1{
+  font-size:clamp(36px,5vw,58px);
+  font-weight:800;letter-spacing:-0.04em;
+  line-height:1.05;margin-bottom:16px;
+  color:var(--t1);
+}
+.hero h1 .dim{color:var(--t3)}
+.hero-sub{
+  font-size:15px;color:var(--t2);
+  line-height:1.65;margin-bottom:32px;
+  max-width:440px;
+}
+.hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+/* Stats row — like the "60fps · ±50ms · 8 zones" line */
+.stats-row{
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;margin-top:28px;padding-top:28px;
+  border-top:1px solid var(--border);
+}
+.stats-row .stat-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--t2);
+}
+.stats-row .stat-item .val{
+  font-size:13px;font-weight:700;color:var(--t1);
+  font-variant-numeric:tabular-nums;
+}
+.stats-sep{width:1px;height:14px;background:var(--border-hi)}
+
+/* Hero right — Training panel mockup */
+.hero-panel{
+  background:var(--bg-panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+}
+.panel-topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+}
+.panel-title{
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:700;color:var(--t1);
+}
+.panel-title-icon{font-size:12px}
+.panel-chip-row{display:flex;gap:6px;align-items:center}
+
+.panel-body{
+  display:flex;min-height:240px;
+}
+.panel-sidebar{
+  width:130px;flex-shrink:0;
+  border-right:1px solid var(--border);
+  padding:12px 10px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.sidebar-section-label{
+  font-size:9px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--t3);
+  margin-bottom:6px;
+}
+.zone-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:4px;
+}
+.zone-grid .zone-tag{width:100%;font-size:9px;padding:3px 4px}
+.zone-grid-2{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:4px;margin-top:4px;
+}
+
+.panel-main{
+  flex:1;
+  background:#080808;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.panel-standby{
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  padding:4px 10px;border-radius:100px;
+  font-size:10px;font-weight:600;letter-spacing:0.08em;
+  color:var(--t3);text-transform:uppercase;
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+}
+.panel-ready{
+  font-size:48px;font-weight:900;
+  letter-spacing:-0.03em;color:var(--t1);
+  opacity:0.06;
+}
+
+.panel-right{
+  width:120px;flex-shrink:0;
+  border-left:1px solid var(--border);
+  padding:12px 10px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.timer-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.timer-ring-label{font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--t3)}
+.timer-ring{
+  width:52px;height:52px;border-radius:50%;
+  border:2px solid var(--green);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 12px rgba(34,197,94,0.25);
+  font-size:16px;font-weight:300;color:var(--t2);
+}
+.live-stats-section{display:flex;flex-direction:column;gap:8px}
+.live-stat-row{
+  display:flex;justify-content:space-between;align-items:center;
+}
+.live-stat-row .ls-label{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--t3)}
+.live-stat-row .ls-val{font-size:11px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums}
+
+/* =========================================================
+   FEATURES GRID
+   ========================================================= */
+.features-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;background:var(--border);
+}
+.feat-card{
+  background:var(--bg-panel);
+  padding:24px 20px;
+  transition:background 0.15s;
+  cursor:default;
+}
+.feat-card:hover{background:var(--bg-card2)}
+.feat-card-wide{grid-column:span 2}
+.feat-icon{
+  width:32px;height:32px;border-radius:6px;
+  background:var(--bg-card2);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;margin-bottom:14px;
+  flex-shrink:0;
+}
+.feat-card h3{
+  font-size:13px;font-weight:700;
+  color:var(--t1);margin-bottom:6px;
+  letter-spacing:-0.01em;
+}
+.feat-card p{font-size:12px;color:var(--t2);line-height:1.55}
+.feat-tag{
+  display:inline-block;margin-top:10px;
+  padding:2px 8px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:0.06em;
+  text-transform:uppercase;
+  background:var(--green-bg);color:var(--green);
+  border:1px solid var(--green-border);
+}
+.feat-tag.amber{background:var(--amber-bg);color:var(--amber);border-color:rgba(245,158,11,0.25)}
+
+/* =========================================================
+   PRICING
+   ========================================================= */
+.billing-row{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:32px;
+}
+.billing-row .label{color:var(--t3)}
+.billing-row .label.active{color:var(--t1)}
+.toggle-wrap{position:relative;width:40px;height:22px}
+.toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{
+  position:absolute;inset:0;border-radius:100px;
+  background:var(--bg-card2);border:1px solid var(--border-hi);
+  cursor:pointer;transition:background 0.2s;
+}
+.toggle-track::after{
+  content:'';position:absolute;
+  width:14px;height:14px;top:3px;left:3px;
+  background:var(--t2);border-radius:50%;
+  transition:transform 0.2s var(--ease);
+}
+.toggle-wrap input:checked+.toggle-track{background:var(--green);border-color:var(--green)}
+.toggle-wrap input:checked+.toggle-track::after{transform:translateX(18px);background:#000}
+.save-pill{
+  background:var(--green-bg);color:var(--green);
+  border:1px solid var(--green-border);
+  padding:2px 8px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+}
+
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+}
+.price-card{
+  background:var(--bg-panel);
+  padding:28px 22px;
+  display:flex;flex-direction:column;
+  transition:background 0.15s;
+  position:relative;
+}
+.price-card:hover{background:var(--bg-card2)}
+.price-card.featured{
+  background:var(--bg-card2);
+}
+/* green top line for featured */
+.price-card.featured::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--green);
+}
+
+.plan-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;margin-bottom:16px;
+  align-self:flex-start;
+}
+.plan-badge.popular{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.plan-badge.coach{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.25)}
+.plan-badge.enterprise{background:rgba(255,255,255,0.05);color:var(--t2);border:1px solid var(--border-hi)}
+
+.plan-name{
+  font-size:18px;font-weight:800;letter-spacing:-0.03em;
+  color:var(--t1);margin-bottom:4px;
+}
+.plan-desc{font-size:12px;color:var(--t3);margin-bottom:20px}
+
+.plan-price{
+  display:flex;align-items:baseline;gap:4px;
+  margin-bottom:4px;
+}
+.plan-price .curr{font-size:16px;font-weight:700;color:var(--t2)}
+.plan-price .amt{
+  font-size:36px;font-weight:800;
+  letter-spacing:-0.04em;color:var(--t1);
+  font-variant-numeric:tabular-nums;
+  transition:all 0.2s var(--ease);
+}
+.plan-price .per{font-size:12px;color:var(--t3)}
+.plan-annual-note{
+  font-size:11px;color:var(--green);
+  margin-bottom:20px;min-height:16px;
+}
+
+.plan-cta{
+  width:100%;padding:9px;border-radius:5px;
+  font-family:var(--font);font-size:12px;font-weight:700;
+  letter-spacing:0.02em;text-transform:uppercase;
+  cursor:pointer;border:1px solid;
+  transition:all 0.15s;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.plan-cta.cta-primary{
+  background:var(--green);color:#000;border-color:var(--green);
+}
+.plan-cta.cta-primary:hover{opacity:0.87}
+.plan-cta.cta-ghost{
+  background:transparent;color:var(--t2);border-color:var(--border-hi);
+}
+.plan-cta.cta-ghost:hover{color:var(--t1);border-color:rgba(255,255,255,0.2);background:var(--bg-hover)}
+.plan-cta.cta-amber{
+  background:transparent;color:var(--amber);border-color:rgba(245,158,11,0.3);
+}
+.plan-cta.cta-amber:hover{background:var(--amber-bg)}
+
+.plan-divider{
+  height:1px;background:var(--border);
+  margin-bottom:16px;
+}
+.plan-features-list{
+  list-style:none;display:flex;flex-direction:column;gap:8px;
+  flex:1;
+}
+.plan-features-list li{
+  display:flex;align-items:flex-start;gap:8px;
+  font-size:12px;color:var(--t2);line-height:1.4;
+}
+.feat-check{color:var(--green);font-size:12px;margin-top:1px;flex-shrink:0}
+.feat-cross{color:var(--t4);font-size:12px;margin-top:1px;flex-shrink:0}
+.plan-features-list li.muted{color:var(--t4)}
+
+/* =========================================================
+   COMPARE TABLE
+   ========================================================= */
+.compare-wrap{
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+}
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table th,.compare-table td{
+  padding:11px 16px;
+  text-align:left;font-size:12px;
+  border-bottom:1px solid var(--border);
+}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table th{
+  background:var(--bg-card2);
+  font-size:10px;font-weight:700;letter-spacing:0.1em;
+  text-transform:uppercase;color:var(--t2);
+}
+.compare-table th.col-premium{color:var(--green)}
+.compare-table td{color:var(--t2)}
+.compare-table td.col-free{color:var(--t3)}
+.compare-table td.col-premium{color:var(--green);font-weight:600}
+.compare-table .feature-name{color:var(--t1);font-weight:500}
+.compare-table tr:hover td{background:rgba(255,255,255,0.015)}
+
+/* =========================================================
+   TESTIMONIALS
+   ========================================================= */
+.testi-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+}
+.testi-card{
+  background:var(--bg-panel);
+  padding:22px 20px;
+  transition:background 0.15s;
+}
+.testi-card:hover{background:var(--bg-card2)}
+.testi-stars{color:var(--green);font-size:11px;letter-spacing:2px;margin-bottom:10px}
+.testi-quote{
+  font-size:13px;color:var(--t2);
+  line-height:1.65;margin-bottom:16px;
+  font-style:italic;
+}
+.testi-author{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.testi-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--bg-card2);border:1px solid var(--border-hi);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:var(--t1);
+  flex-shrink:0;
+}
+.testi-name{font-size:12px;font-weight:700;color:var(--t1)}
+.testi-role{font-size:11px;color:var(--t3)}
+.plan-used-tag{
+  display:inline-block;
+  padding:2px 7px;border-radius:3px;
+  font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  background:var(--bg-card2);color:var(--t3);border:1px solid var(--border);
+}
+
+/* =========================================================
+   FAQ
+   ========================================================= */
+.faq-list{
+  border:1px solid var(--border);border-radius:10px;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item:last-child{border-bottom:none}
+.faq-q{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:none;border:none;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  color:var(--t1);text-align:left;gap:16px;
+  transition:background 0.15s;
+}
+.faq-q:hover{background:var(--bg-panel)}
+.faq-q.open{background:var(--bg-panel);color:var(--green)}
+.faq-icon{
+  font-size:16px;color:var(--t3);font-weight:300;
+  flex-shrink:0;transition:transform 0.2s var(--ease),color 0.15s;
+}
+.faq-q.open .faq-icon{transform:rotate(45deg);color:var(--green)}
+.faq-a{
+  display:none;padding:0 18px 14px;
+  font-size:13px;color:var(--t2);line-height:1.65;
+  background:var(--bg-panel);
+}
+.faq-a.open{display:block}
+
+/* =========================================================
+   LEADERBOARD
+   ========================================================= */
+.lb-panel{
+  background:var(--bg-panel);
+  border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+}
+.lb-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg-card2);
+}
+.lb-header-title{
+  font-size:11px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--t1);
+}
+.lb-live-badge{
+  display:flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:700;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--green);
+}
+.lb-live-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:blink-dot 1.8s ease-in-out infinite;
+}
+@keyframes blink-dot{0%,100%{opacity:1;box-shadow:0 0 4px var(--green)}50%{opacity:0.4;box-shadow:none}}
+
+.lb-row{
+  display:grid;grid-template-columns:28px 32px 1fr auto auto;
+  align-items:center;gap:10px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--border);
+  transition:background 0.15s;
+}
+.lb-row:last-child{border-bottom:none}
+.lb-row:hover{background:var(--bg-card2)}
+.lb-row.you-row{background:rgba(34,197,94,0.04)}
+
+.lb-rank{font-size:12px;font-weight:700;color:var(--t3);text-align:center;font-variant-numeric:tabular-nums}
+.lb-av{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--bg-card2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--t1);
+}
+.lb-name{font-size:13px;font-weight:600;color:var(--t1)}
+.lb-bar-wrap{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;width:80px}
+.lb-bar{height:100%;border-radius:2px;background:var(--green);transition:width 1.5s ease}
+.lb-xp{font-size:11px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+.lb-you-label{
+  grid-column:1/-1;
+  font-size:11px;color:var(--t3);
+  padding:8px 16px;
+  border-top:1px solid var(--border);
+  background:var(--bg-card2);
+  text-align:center;
+}
+
+/* =========================================================
+   FINAL CTA
+   ========================================================= */
+.final-cta-panel{
+  background:var(--bg-panel);
+  border:1px solid var(--border);border-radius:10px;
+  padding:48px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:40px;
+  position:relative;overflow:hidden;
+}
+.final-cta-panel::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--green);
+}
+.final-cta-left{max-width:480px}
+.final-cta-left h2{
+  font-size:28px;font-weight:800;letter-spacing:-0.03em;
+  color:var(--t1);line-height:1.2;margin-bottom:8px;
+}
+.final-cta-left p{font-size:13px;color:var(--t2);line-height:1.6}
+.final-cta-right{
+  display:flex;flex-direction:column;gap:10px;
+  align-items:flex-end;flex-shrink:0;
+}
+.trust-list{
+  display:flex;gap:16px;flex-wrap:wrap;
+  justify-content:flex-end;margin-top:8px;
+}
+.trust-item{font-size:11px;color:var(--t3)}
+
+/* =========================================================
+   SECTION HEADER
+   ========================================================= */
+.sec-head{margin-bottom:28px}
+.sec-head h2{
+  font-size:clamp(22px,3vw,32px);
+  font-weight:800;letter-spacing:-0.03em;
+  color:var(--t1);line-height:1.1;margin-bottom:6px;
+}
+.sec-head p{font-size:13px;color:var(--t2);max-width:480px;line-height:1.6}
+.sec-head-row{
+  display:flex;align-items:flex-end;
+  justify-content:space-between;gap:20px;
+  flex-wrap:wrap;
+}
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+.sec-divider{
+  height:1px;background:var(--border);
+  max-width:1140px;margin:0 auto;
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+.modal-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,0.85);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;opacity:0;pointer-events:none;
+  transition:opacity 0.2s var(--ease);
+}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{
+  background:var(--bg-panel);
+  border:1px solid var(--border-hi);
+  border-radius:10px;
+  width:100%;max-width:420px;
+  padding:28px;
+  transform:scale(0.95) translateY(10px);
+  transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;
+}
+.modal-overlay.open .modal{transform:scale(1) translateY(0)}
+.modal-close{
+  position:absolute;top:12px;right:12px;
+  background:none;border:none;color:var(--t3);
+  cursor:pointer;font-size:18px;
+  width:28px;height:28px;display:flex;
+  align-items:center;justify-content:center;
+  border-radius:4px;transition:background 0.15s,color 0.15s;
+}
+.modal-close:hover{background:var(--bg-card2);color:var(--t1)}
+
+.modal h3{
+  font-size:18px;font-weight:800;letter-spacing:-0.03em;
+  color:var(--t1);margin-bottom:4px;
+}
+.modal-sub{font-size:12px;color:var(--t2);margin-bottom:20px}
+.modal-plan-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg-card2);border:1px solid var(--border);
+  border-radius:6px;padding:10px 14px;margin-bottom:16px;
+}
+.modal-plan-name{font-size:13px;font-weight:700;color:var(--t1)}
+.modal-plan-price{font-size:13px;font-weight:700;color:var(--green)}
+.modal-plan-trial{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--t3);margin-top:2px}
+
+.modal-input{
+  width:100%;background:var(--bg-card2);
+  border:1px solid var(--border);color:var(--t1);
+  padding:9px 12px;border-radius:5px;
+  font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color 0.15s;
+  margin-bottom:8px;
+}
+.modal-input:focus{border-color:var(--green)}
+.modal-input::placeholder{color:var(--t4)}
+.modal-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-row .modal-input{margin-bottom:0}
+.modal-btn{
+  width:100%;margin-top:12px;padding:10px;
+  background:var(--green);color:#000;
+  border:none;border-radius:5px;
+  font-family:var(--font);font-size:13px;font-weight:700;
+  letter-spacing:0.02em;text-transform:uppercase;
+  cursor:pointer;transition:opacity 0.15s;
+}
+.modal-btn:hover{opacity:0.87}
+.modal-note{font-size:11px;color:var(--t3);text-align:center;margin-top:10px}
+
+.modal-step{display:flex;flex-direction:column}
+.modal-step.hidden{display:none}
+
+/* Success step */
+.success-ring{
+  width:64px;height:64px;border-radius:50%;
+  border:2px solid var(--green);
+  display:flex;align-items:center;justify-content:center;
+  margin:8px auto 16px;
+  box-shadow:0 0 20px rgba(34,197,94,0.2);
+}
+.checkmark-svg{width:28px;height:28px}
+.checkmark-circle{stroke-dasharray:166;stroke-dashoffset:166;stroke:var(--green);stroke-width:2;animation:stroke 0.5s ease forwards}
+.checkmark-check{stroke-dasharray:48;stroke-dashoffset:48;stroke:var(--green);stroke-width:2.5;stroke-linecap:round;animation:stroke 0.35s ease 0.45s forwards}
+@keyframes stroke{to{stroke-dashoffset:0}}
+
+.perk-list{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.perk-row{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg-card2);border:1px solid var(--border);
+  padding:7px 12px;border-radius:5px;
+  font-size:12px;color:var(--t2);
+}
+.perk-row .check{color:var(--green);font-weight:700}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media(max-width:1024px){
+  .hero-grid{grid-template-columns:1fr;gap:40px}
+  .hero-panel{display:none}
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+  .feat-card-wide{grid-column:span 1}
+  .pricing-grid{grid-template-columns:1fr}
+  .price-card.featured::before{height:0;top:auto;left:0;bottom:0;width:2px;height:100%}
+  .testi-grid{grid-template-columns:repeat(2,1fr)}
+  .final-cta-panel{flex-direction:column;padding:28px 24px}
+  .final-cta-right{align-items:flex-start}
+  .trust-list{justify-content:flex-start}
+  .nav-links{display:none}
+}
+@media(max-width:640px){
+  .features-grid{grid-template-columns:1fr}
+  .testi-grid{grid-template-columns:1fr}
+  .sec{padding:56px 0}
+  .lb-bar-wrap{display:none}
+  .modal-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     NAV
+     ========================================================= -->
+<nav id="nav">
+  <div class="nav-inner">
+    <button class="nav-menu-icon" aria-label="Menu" id="hamburger">
+      <span></span><span></span><span></span>
+    </button>
+
+    <a href="https://shuttlestepz.github.io/Badminton-AI-trainer_V2/index.html" class="nav-logo">
+      <div class="nav-logo-icon">🏸</div>
+      <span class="nav-logo-text">Shuttlestepz</span>
+    </a>
+    <span class="nav-page-label">Premium</span>
+
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#compare">Compare</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <div class="nav-right">
+      <div class="xp-badge">
+        <span class="xp-dot"></span>
+        0 XP
+      </div>
+      <button class="btn-green" onclick="openModal('student')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Get Premium
+      </button>
+    </div>
+  </div>
+  <div class="mob-menu" id="mobMenu">
+    <a href="#features" onclick="closeMob()">Features</a>
+    <a href="#pricing" onclick="closeMob()">Pricing</a>
+    <a href="#compare" onclick="closeMob()">Compare</a>
+    <a href="#faq" onclick="closeMob()">FAQ</a>
+  </div>
+</nav>
+
+<!-- =========================================================
+     HERO
+     ========================================================= -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+
+      <!-- Left -->
+      <div>
+        <div class="hero-eyebrow">
+          <div class="lb-live-badge">
+            <span class="lb-live-dot"></span>
+            Premium Active
+          </div>
+        </div>
+
+        <h1>
+          Unlock elite<br/>
+          AI training.
+        </h1>
+        <p class="hero-sub">
+          Real-time biomechanical analysis, 540+ drill sequences, coach dashboards,
+          and XP leaderboards. Everything you need to dominate the court.
+        </p>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" onclick="goTo('#pricing')">
+            Start Free Trial
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-lg" onclick="goTo('#features')">
+            See what's included
+          </button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-item"><span class="val">10K+</span>&nbsp;Sessions</div>
+          <div class="stats-sep"></div>
+          <div class="stat-item"><span class="val">500+</span>&nbsp;Schools</div>
+          <div class="stats-sep"></div>
+          <div class="stat-item"><span class="val">60fps</span>&nbsp;AI Tracking</div>
+          <div class="stats-sep"></div>
+          <div class="stat-item"><span class="val">±50ms</span>&nbsp;Precision</div>
+          <div class="stats-sep"></div>
+          <div class="stat-item"><span class="val">8</span>&nbsp;Court Zones</div>
+        </div>
+      </div>
+
+      <!-- Right — Training panel mockup -->
+      <div class="hero-panel">
+        <div class="panel-topbar">
+          <div class="panel-title">
+            <span class="panel-title-icon">🎯</span>
+            Training
+          </div>
+          <div class="panel-chip-row">
+            <div class="stat-chip"><span class="chip-label">Round</span><span class="chip-val">0/0</span></div>
+            <div class="stat-chip"><span class="chip-label">Score</span><span class="chip-val">0</span></div>
+            <div class="stat-chip"><span class="chip-label">Streak</span><span class="chip-val">0</span></div>
+            <div class="stat-chip"><span class="chip-label">Accuracy</span><span class="chip-val">—</span></div>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <!-- Sidebar -->
+          <div class="panel-sidebar">
+            <div>
+              <div class="sidebar-section-label">Zone Focus</div>
+              <div class="zone-grid">
+                <span class="zone-tag active">ALL</span>
+                <span class="zone-tag">FRONT</span>
+                <span class="zone-tag">BACK</span>
+              </div>
+              <div class="zone-grid-2" style="margin-top:4px">
+                <span class="zone-tag">CENTRE</span>
+                <span class="zone-tag">LEFT</span>
+                <span class="zone-tag">RIGHT</span>
+                <span class="zone-tag">L-CORN</span>
+                <span class="zone-tag">R-CORN</span>
+              </div>
+            </div>
+            <div>
+              <div class="sidebar-section-label">Progress</div>
+              <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px">
+                <div style="height:100%;width:0%;background:var(--green);border-radius:2px"></div>
+              </div>
+            </div>
+            <div>
+              <div class="sidebar-section-label">Speed</div>
+              <div style="font-size:11px;color:var(--t3)">—</div>
+            </div>
+          </div>
+
+          <!-- Court area -->
+          <div class="panel-main">
+            <div class="panel-standby">STANDBY</div>
+            <div class="panel-ready">READY</div>
+          </div>
+
+          <!-- Right sidebar -->
+          <div class="panel-right">
+            <div class="timer-ring-wrap">
+              <div class="timer-ring-label">Timer</div>
+              <div class="timer-ring">—</div>
+            </div>
+            <div>
+              <div class="sidebar-section-label">Live Stats</div>
+              <div class="live-stats-section">
+                <div class="live-stat-row"><span class="ls-label">Round</span><span class="ls-val">0/0</span></div>
+                <div class="live-stat-row"><span class="ls-label">Score</span><span class="ls-val">0</span></div>
+                <div class="live-stat-row"><span class="ls-label">Streak</span><span class="ls-val">0</span></div>
+                <div class="live-stat-row"><span class="ls-label">Accuracy</span><span class="ls-val">—</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     FEATURES
+     ========================================================= -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head-row">
+      <div class="sec-head" style="margin-bottom:0">
+        <span class="label" style="color:var(--green);display:block;margin-bottom:8px">What you unlock</span>
+        <h2>Everything a pro coach gives you.</h2>
+        <p>Built on real-time computer vision — 60fps pose tracking, millisecond reaction data, full analytics stack.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div class="zone-tag active">Premium</div>
+        <div class="zone-tag">540+ Drills</div>
+        <div class="zone-tag">8 Zones</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px" class="features-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon">⚡</div>
+        <h3>Reaction Tracking</h3>
+        <p>Millisecond-precise reaction time across all 8 court zones. Know exactly where you're slow.</p>
+        <span class="feat-tag">±50ms precision</span>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🤖</div>
+        <h3>AI Pose Detection</h3>
+        <p>60fps biomechanical analysis. Live movement correction during active sessions.</p>
+        <span class="feat-tag">60fps live</span>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">📊</div>
+        <h3>Deep Analytics</h3>
+        <p>Per-session breakdowns — accuracy by zone, average reaction, XP earned, trend over time.</p>
+        <span class="feat-tag amber">Premium only</span>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🗺️</div>
+        <h3>Movement Heatmaps</h3>
+        <p>Visual court overlays showing coverage gaps, high-frequency zones, and positional weaknesses.</p>
+        <span class="feat-tag amber">Premium only</span>
+      </div>
+
+      <div class="feat-card feat-card-wide">
+        <div class="feat-icon">🖥️</div>
+        <h3>Coach & School Dashboard</h3>
+        <p>Manage multiple students simultaneously. Assign drills, review sessions, monitor progress, generate reports. Full team management across devices.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <span class="feat-tag">Multi-player</span>
+          <span class="feat-tag amber">Coach plan+</span>
+          <span class="feat-tag amber">Export CSV/PDF</span>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🏆</div>
+        <h3>XP & Leaderboard</h3>
+        <p>Earn XP every session, level up, compete nationally on the ranked leaderboard.</p>
+        <span class="feat-tag">Unlimited XP</span>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🎙️</div>
+        <h3>Voice Coaching</h3>
+        <p>Hands-free audio cues guide your session exactly like a live training drill.</p>
+        <span class="feat-tag">Live feedback</span>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon">🧠</div>
+        <h3>Match Simulation</h3>
+        <p>AI generates shadow drill sets from your opponent's court pattern data.</p>
+        <span class="feat-tag amber">Premium only</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     PRICING
+     ========================================================= -->
+<section class="sec" id="pricing">
+  <div class="wrap">
+    <div class="sec-head-row">
+      <div class="sec-head" style="margin-bottom:0">
+        <span class="label" style="color:var(--green);display:block;margin-bottom:8px">Pricing</span>
+        <h2>Simple, honest pricing.</h2>
+        <p>7-day free trial on all plans. No credit card needed. Cancel anytime.</p>
+      </div>
+      <div class="billing-row" style="margin-bottom:0">
+        <span class="label" id="lbl-mo" style="color:var(--t1)">Monthly</span>
+        <div class="toggle-wrap">
+          <input type="checkbox" id="billingToggle" onchange="toggleBilling()"/>
+          <div class="toggle-track"></div>
+        </div>
+        <span class="label" id="lbl-yr">Annual</span>
+        <span class="save-pill">Save 20%</span>
+      </div>
+    </div>
+
+    <div style="margin-top:24px" class="pricing-grid">
+
+      <!-- STUDENT -->
+      <div class="price-card" id="card-student">
+        <span class="plan-badge popular">⭐ Most Popular</span>
+        <div class="plan-name">Student</div>
+        <div class="plan-desc">For individual players levelling up</div>
+        <div class="plan-price">
+          <span class="curr">₹</span>
+          <span class="amt" id="p-student">199</span>
+          <span class="per">/month</span>
+        </div>
+        <div class="plan-annual-note" id="note-student"></div>
+        <button class="plan-cta cta-ghost" onclick="openModal('student')">
+          Start Free Trial →
+        </button>
+        <div class="plan-divider"></div>
+        <ul class="plan-features-list">
+          <li><span class="feat-check">✓</span>Advanced AI footwork analysis</li>
+          <li><span class="feat-check">✓</span>Unlimited training sessions</li>
+          <li><span class="feat-check">✓</span>Progress tracking dashboard</li>
+          <li><span class="feat-check">✓</span>XP system &amp; leaderboard</li>
+          <li><span class="feat-check">✓</span>Premium drill library (540+)</li>
+          <li><span class="feat-check">✓</span>Full session history</li>
+          <li><span class="feat-check">✓</span>Daily AI challenges</li>
+          <li><span class="feat-check">✓</span>Basic analytics</li>
+          <li class="muted"><span class="feat-cross">✕</span>Coach dashboard</li>
+          <li class="muted"><span class="feat-cross">✕</span>Team management</li>
+        </ul>
+      </div>
+
+      <!-- COACH -->
+      <div class="price-card featured" id="card-coach">
+        <span class="plan-badge coach">🏅 For Coaches</span>
+        <div class="plan-name">Coach</div>
+        <div class="plan-desc">For trainers managing multiple players</div>
+        <div class="plan-price">
+          <span class="curr">₹</span>
+          <span class="amt" id="p-coach">399</span>
+          <span class="per">/month</span>
+        </div>
+        <div class="plan-annual-note" id="note-coach"></div>
+        <button class="plan-cta cta-primary" onclick="openModal('coach')">
+          Upgrade Now →
+        </button>
+        <div class="plan-divider"></div>
+        <ul class="plan-features-list">
+          <li><span class="feat-check">✓</span>Everything in Student</li>
+          <li><span class="feat-check">✓</span>Full coach dashboard</li>
+          <li><span class="feat-check">✓</span>Student performance tracking</li>
+          <li><span class="feat-check">✓</span>Multi-player monitoring</li>
+          <li><span class="feat-check">✓</span>Deep training analytics</li>
+          <li><span class="feat-check">✓</span>Team management tools</li>
+          <li><span class="feat-check">✓</span>Detailed session reports</li>
+          <li><span class="feat-check">✓</span>Export stats (CSV / PDF)</li>
+          <li><span class="feat-check">✓</span>Advanced AI pattern insights</li>
+          <li class="muted"><span class="feat-cross">✕</span>School admin controls</li>
+        </ul>
+      </div>
+
+      <!-- INSTITUTION -->
+      <div class="price-card" id="card-school">
+        <span class="plan-badge enterprise">🏢 Enterprise</span>
+        <div class="plan-name">Institution</div>
+        <div class="plan-desc">For schools and academies</div>
+        <div class="plan-price">
+          <span class="curr">₹</span>
+          <span class="amt" id="p-school">799</span>
+          <span class="per">/month</span>
+        </div>
+        <div class="plan-annual-note" id="note-school"></div>
+        <button class="plan-cta cta-amber" onclick="openModal('school')">
+          Get Institution Access →
+        </button>
+        <div class="plan-divider"></div>
+        <ul class="plan-features-list">
+          <li><span class="feat-check">✓</span>Everything in Coach</li>
+          <li><span class="feat-check">✓</span>Full school admin dashboard</li>
+          <li><span class="feat-check">✓</span>Unlimited student accounts</li>
+          <li><span class="feat-check">✓</span>Institution leaderboard</li>
+          <li><span class="feat-check">✓</span>Granular admin controls</li>
+          <li><span class="feat-check">✓</span>Performance heatmaps per student</li>
+          <li><span class="feat-check">✓</span>School-wide analytics</li>
+          <li><span class="feat-check">✓</span>Attendance tracking</li>
+          <li><span class="feat-check">✓</span>Dedicated support manager</li>
+          <li><span class="feat-check">✓</span>Branded AI performance reports</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     COMPARE
+     ========================================================= -->
+<section class="sec" id="compare">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label" style="color:var(--green);display:block;margin-bottom:8px">Compare</span>
+      <h2>Free vs Premium.</h2>
+      <p>See exactly what you're unlocking.</p>
+    </div>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Free</th>
+            <th class="col-premium">Premium</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="feature-name">AI analysis</td><td class="col-free">Basic — 5/day</td><td class="col-premium">✓ Unlimited</td></tr>
+          <tr><td class="feature-name">Training sessions</td><td class="col-free">3/week</td><td class="col-premium">✓ Unlimited</td></tr>
+          <tr><td class="feature-name">Drill library</td><td class="col-free">20 drills</td><td class="col-premium">✓ 540+ drills</td></tr>
+          <tr><td class="feature-name">Progress history</td><td class="col-free">7 days only</td><td class="col-premium">✓ Full history</td></tr>
+          <tr><td class="feature-name">XP &amp; leaderboard</td><td class="col-free">—</td><td class="col-premium">✓ Full access</td></tr>
+          <tr><td class="feature-name">Daily challenges</td><td class="col-free">—</td><td class="col-premium">✓ AI-generated</td></tr>
+          <tr><td class="feature-name">Analytics dashboard</td><td class="col-free">—</td><td class="col-premium">✓ Deep insights</td></tr>
+          <tr><td class="feature-name">Heatmaps</td><td class="col-free">—</td><td class="col-premium">✓ Included</td></tr>
+          <tr><td class="feature-name">Coach dashboard</td><td class="col-free">—</td><td class="col-premium">✓ Coach plan+</td></tr>
+          <tr><td class="feature-name">School management</td><td class="col-free">—</td><td class="col-premium">✓ Institution plan</td></tr>
+          <tr><td class="feature-name">Data export</td><td class="col-free">—</td><td class="col-premium">✓ Coach plan+</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     LEADERBOARD PREVIEW
+     ========================================================= -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head-row">
+      <div class="sec-head" style="margin-bottom:0">
+        <span class="label" style="color:var(--green);display:block;margin-bottom:8px">Leaderboard</span>
+        <h2>Where will you rank?</h2>
+        <p>Premium members compete nationally. Earn XP every session, climb the board.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('student')">
+        Join the Leaderboard →
+      </button>
+    </div>
+    <div style="margin-top:24px" class="lb-panel">
+      <div class="lb-header">
+        <span class="lb-header-title">India Rankings — This Week</span>
+        <div class="lb-live-badge"><span class="lb-live-dot"></span>Live</div>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank">🥇</span>
+        <div class="lb-av" style="background:linear-gradient(135deg,#f59e0b33,#ef444433)">SV</div>
+        <span class="lb-name">Siddharth V.</span>
+        <div class="lb-bar-wrap"><div class="lb-bar" style="width:100%"></div></div>
+        <span class="lb-xp">12,450 XP</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank">🥈</span>
+        <div class="lb-av">PR</div>
+        <span class="lb-name">Priya R.</span>
+        <div class="lb-bar-wrap"><div class="lb-bar" style="width:89%"></div></div>
+        <span class="lb-xp">11,090 XP</span>
+      </div>
+      <div class="lb-row">
+        <span class="lb-rank">🥉</span>
+        <div class="lb-av">AM</div>
+        <span class="lb-name">Aditya M.</span>
+        <div class="lb-bar-wrap"><div class="lb-bar" style="width:78%"></div></div>
+        <span class="lb-xp">9,720 XP</span>
+      </div>
+      <div class="lb-row you-row">
+        <span class="lb-rank" style="color:var(--t4)">??</span>
+        <div class="lb-av" style="color:var(--t3)">YOU</div>
+        <span class="lb-name" style="color:var(--t3)">Not ranked yet</span>
+        <div class="lb-bar-wrap"><div class="lb-bar" style="width:0%"></div></div>
+        <span class="lb-xp" style="color:var(--t4)">Upgrade to join</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     TESTIMONIALS
+     ========================================================= -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="label" style="color:var(--green);display:block;margin-bottom:8px">Players &amp; Coaches</span>
+      <h2>What they're saying.</h2>
+    </div>
+    <div class="testi-grid">
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">My split-step reaction dropped 0.3 seconds in 6 weeks. The AI catches things no human coach ever noticed. District ranking: 14th to 3rd.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">AR</div>
+          <div><div class="testi-name">Arjun Raghav</div><div class="testi-role">U-19 Player, Chennai</div></div>
+        </div>
+        <span class="plan-used-tag">Student Plan</span>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">I coach 24 students simultaneously. The dashboard saves me 3 hours a day. AI session reports are more detailed than anything I'd write manually.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">SP</div>
+          <div><div class="testi-name">Sneha Pillai</div><div class="testi-role">Head Coach, Bangalore Academy</div></div>
+        </div>
+        <span class="plan-used-tag">Coach Plan</span>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">Integrated across 3 campuses. Attendance + heatmap combo justified the cost immediately. Parent-teacher reviews have never been easier.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">MK</div>
+          <div><div class="testi-name">Mohan Kumar</div><div class="testi-role">Sports Director, DPS Hyderabad</div></div>
+        </div>
+        <span class="plan-used-tag">Institution Plan</span>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">Daily challenges kept me consistent for 4 months. The XP system is genuinely addictive — I actually look forward to morning footwork drills.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">RN</div>
+          <div><div class="testi-name">Riya Nair</div><div class="testi-role">Recreational Player, Mumbai</div></div>
+        </div>
+        <span class="plan-used-tag">Student Plan</span>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">Match simulation is extraordinary. It generated a shadow drill set from my upcoming opponent's court pattern. Next-level pre-match prep.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">KV</div>
+          <div><div class="testi-name">Karan Verma</div><div class="testi-role">State Ranked Player, Delhi</div></div>
+        </div>
+        <span class="plan-used-tag">Coach Plan</span>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">180-student program runs seamlessly. The dedicated support manager replied in 45 minutes on a Sunday. That level of service is rare.</p>
+        <div class="testi-author">
+          <div class="testi-avatar">PS</div>
+          <div><div class="testi-name">Principal Sharma</div><div class="testi-role">St. Xavier's School, Pune</div></div>
+        </div>
+        <span class="plan-used-tag">Institution Plan</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     FAQ
+     ========================================================= -->
+<section class="sec" id="faq">
+  <div class="wrap" style="max-width:720px">
+    <div class="sec-head">
+      <span class="label" style="color:var(--green);display:block;margin-bottom:8px">FAQ</span>
+      <h2>Common questions.</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime?<span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes. Cancel from account settings at any time. Access continues to end of billing period. No cancellation fees, ever.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What's the refund policy?<span class="faq-icon">+</span></button>
+        <div class="faq-a">Full refund within 7 days of first payment. Annual plans get prorated refund within 30 days. Email support@shuttlestepz.ai.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Which devices are supported?<span class="faq-icon">+</span></button>
+        <div class="faq-a">iOS, Android, and all modern browsers (Chrome, Safari, Firefox, Edge). Data syncs across devices in real time.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">How does school integration work?<span class="faq-icon">+</span></button>
+        <div class="faq-a">After subscribing to the Institution plan, you receive an onboarding call within 24 hours. We support SSO, bulk student CSV import, and LMS connectors for Google Classroom and Microsoft Teams.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Is there a free trial?<span class="faq-icon">+</span></button>
+        <div class="faq-a">All plans include a 7-day free trial. No credit card required. You'll only be charged after the trial ends — we remind you 48 hours beforehand.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I switch plans?<span class="faq-icon">+</span></button>
+        <div class="faq-a">Yes. Upgrade takes effect immediately with prorated billing. Downgrades apply at the start of the next billing cycle.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">How accurate is the AI?<span class="faq-icon">+</span></button>
+        <div class="faq-a">98.4% accuracy on footwork pattern classification, validated across 1.2M labelled movements. Runs at 60fps for real-time feedback.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sec-divider"></div>
+
+<!-- =========================================================
+     FINAL CTA
+     ========================================================= -->
+<section class="sec">
+  <div class="wrap">
+    <div class="final-cta-panel">
+      <div class="final-cta-left">
+        <span class="label" style="color:var(--green);display:block;margin-bottom:8px">Ready?</span>
+        <h2>Start training like a pro. Today.</h2>
+        <p>7-day free trial. No credit card. Cancel anytime. AI runs locally — no video stored.</p>
+        <div class="trust-list">
+          <span class="trust-item">🔒 SSL secured</span>
+          <span class="trust-item">💳 Razorpay</span>
+          <span class="trust-item">⭐ 4.9 / 5</span>
+          <span class="trust-item">🇮🇳 Made in India</span>
+        </div>
+      </div>
+      <div class="final-cta-right">
+        <button class="btn btn-primary btn-lg" onclick="openModal('student')">
+          Start Free Trial
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-lg" onclick="openModal('school')">
+          Get Institution Access
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     FOOTER
+     ========================================================= -->
+<footer style="border-top:1px solid var(--border);padding:28px 0;margin-top:0">
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <a href="https://shuttlestepz.github.io/Badminton-AI-trainer_V2/index.html" class="nav-logo">
+      <div class="nav-logo-icon">🏸</div>
+      <span class="nav-logo-text">Shuttlestepz</span>
+    </a>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <a href="#" style="font-size:12px;color:var(--t3);text-decoration:none">Privacy</a>
+      <a href="#" style="font-size:12px;color:var(--t3);text-decoration:none">Terms</a>
+      <a href="https://shuttlestepz.github.io/Badminton-AI-trainer_V2/login.html" style="font-size:12px;color:var(--t3);text-decoration:none">Login</a>
+      <a href="https://shuttlestepz.github.io/Badminton-AI-trainer_V2/signup.html" style="font-size:12px;color:var(--t3);text-decoration:none">Sign Up</a>
+    </div>
+    <span style="font-size:12px;color:var(--t4)">© 2025 Shuttlestepz Technologies Pvt. Ltd.</span>
+  </div>
+</footer>
+
+<!-- =========================================================
+     MODAL
+     ========================================================= -->
+<div class="modal-overlay" id="modalOverlay" onclick="maybeCloseModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Step 1 -->
+    <div class="modal-step" id="mStep1">
+      <h3 id="mTitle">Start Free Trial</h3>
+      <p class="modal-sub" id="mSub">7 days free — no credit card needed</p>
+      <div class="modal-plan-row">
+        <div><div class="modal-plan-name" id="mPlanName">Student Plan</div><div class="modal-plan-trial">First 7 days free</div></div>
+        <div class="modal-plan-price" id="mPlanPrice">₹199/month</div>
+      </div>
+      <input class="modal-input" type="email" placeholder="Email address" id="mEmail"/>
+      <button class="modal-btn" onclick="goMStep2()">Continue →</button>
+      <p class="modal-note">No card required · Cancel anytime</p>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="modal-step hidden" id="mStep2">
+      <h3>Payment details</h3>
+      <p class="modal-sub">Secured by Razorpay · 256-bit SSL</p>
+      <input class="modal-input" type="text" placeholder="Card number" maxlength="19" oninput="fmtCard(this)"/>
+      <div class="modal-row">
+        <input class="modal-input" type="text" placeholder="MM / YY" maxlength="5"/>
+        <input class="modal-input" type="text" placeholder="CVV" maxlength="3"/>
+      </div>
+      <input class="modal-input" type="text" placeholder="Name on card"/>
+      <button class="modal-btn" id="payBtn" onclick="goMStep3()">Start Free Trial →</button>
+      <p class="modal-note">🔒 Card not charged for 7 days</p>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="modal-step hidden" id="mStep3" style="text-align:center">
+      <div class="success-ring">
+        <svg class="checkmark-svg" viewBox="0 0 52 52">
+          <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+          <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+      </div>
+      <h3>Premium active.</h3>
+      <p class="modal-sub" style="margin-bottom:12px">Check your email for login details.</p>
+      <div class="perk-list">
+        <div class="perk-row"><span class="check">✓</span>Unlimited AI analysis unlocked</div>
+        <div class="perk-row"><span class="check">✓</span>Leaderboard access active</div>
+        <div class="perk-row"><span class="check">✓</span>540+ drills available</div>
+      </div>
+      <button class="modal-btn" style="margin-top:4px" onclick="closeModal()">Start Training →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   NAV SCROLL
+   ========================================================= */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('stuck',scrollY>10)
+})
+document.getElementById('nav').classList.add('stuck')
+
+/* =========================================================
+   HAMBURGER
+   ========================================================= */
+const hbBtn=document.getElementById('hamburger')
+const mobMenu=document.getElementById('mobMenu')
+hbBtn.addEventListener('click',()=>mobMenu.classList.toggle('open'))
+function closeMob(){mobMenu.classList.remove('open')}
+
+/* =========================================================
+   SMOOTH SCROLL
+   ========================================================= */
+function goTo(sel){
+  const el=document.querySelector(sel)
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'})
+}
+
+/* =========================================================
+   BILLING TOGGLE
+   ========================================================= */
+const PRICES={student:{m:199,a:159},coach:{m:399,a:319},school:{m:799,a:639}}
+
+function toggleBilling(){
+  const annual=document.getElementById('billingToggle').checked
+  document.getElementById('lbl-mo').style.color=annual?'var(--t3)':'var(--t1)'
+  document.getElementById('lbl-yr').style.color=annual?'var(--t1)':'var(--t3)'
+  ;['student','coach','school'].forEach(p=>{
+    const el=document.getElementById('p-'+p)
+    const note=document.getElementById('note-'+p)
+    const cur=parseInt(el.textContent)
+    const tar=annual?PRICES[p].a:PRICES[p].m
+    tweenNum(el,cur,tar)
+    note.textContent=annual?`Billed as ₹${(tar*12).toLocaleString()}/year`:''
+  })
+}
+
+function tweenNum(el,from,to){
+  const d=350,t0=performance.now()
+  const fn=now=>{
+    const t=Math.min((now-t0)/d,1)
+    const e=1-Math.pow(1-t,2)
+    el.textContent=Math.round(from+(to-from)*e)
+    if(t<1)requestAnimationFrame(fn)
+    else el.textContent=to
+  }
+  requestAnimationFrame(fn)
+}
+
+/* =========================================================
+   FAQ
+   ========================================================= */
+function toggleFaq(btn){
+  const a=btn.nextElementSibling
+  const open=a.classList.contains('open')
+  document.querySelectorAll('.faq-a.open').forEach(x=>x.classList.remove('open'))
+  document.querySelectorAll('.faq-q.open').forEach(x=>x.classList.remove('open'))
+  if(!open){a.classList.add('open');btn.classList.add('open')}
+}
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+const PLAN_META={
+  student:{title:'Start Free Trial',sub:'7 days free · then ₹199/month',name:'Student Plan',price:'₹199/month'},
+  coach:  {title:'Upgrade to Coach',sub:'7 days free · then ₹399/month',name:'Coach Plan',price:'₹399/month'},
+  school: {title:'Institution Access',sub:'7 days free · then ₹799/month',name:'Institution Plan',price:'₹799/month'}
+}
+let curPlan='student'
+
+function openModal(plan){
+  curPlan=plan
+  const m=PLAN_META[plan]
+  document.getElementById('mTitle').textContent=m.title
+  document.getElementById('mSub').textContent=m.sub
+  document.getElementById('mPlanName').textContent=m.name
+  const ann=document.getElementById('billingToggle').checked
+  document.getElementById('mPlanPrice').textContent=ann?`₹${PRICES[plan].a}/mo`:m.price
+  showMStep(1)
+  document.getElementById('modalOverlay').classList.add('open')
+  document.body.style.overflow='hidden'
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open')
+  document.body.style.overflow=''
+}
+function maybeCloseModal(e){if(e.target===document.getElementById('modalOverlay'))closeModal()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()})
+
+function showMStep(n){
+  for(let i=1;i<=3;i++)document.getElementById('mStep'+i).classList.toggle('hidden',i!==n)
+}
+function goMStep2(){
+  const em=document.getElementById('mEmail')
+  if(!em.value.includes('@')){em.style.borderColor='var(--red)';em.focus();setTimeout(()=>em.style.borderColor='',2000);return}
+  showMStep(2)
+}
+function goMStep3(){
+  const b=document.getElementById('payBtn')
+  b.disabled=true;b.textContent='Processing…'
+  setTimeout(()=>{b.disabled=false;b.textContent='Start Free Trial →';showMStep(3);confetti()},1800)
+}
+function fmtCard(i){
+  let v=i.value.replace(/\D/g,'')
+  i.value=(v.match(/.{1,4}/g)||[]).join(' ').substring(0,19)
+}
+
+/* =========================================================
+   CONFETTI
+   ========================================================= */
+function confetti(){
+  const E=['🏸','⭐','✓','🏆']
+  for(let i=0;i<16;i++)setTimeout(()=>{
+    const s=document.createElement('span')
+    s.textContent=E[i%E.length]
+    s.style.cssText=`position:fixed;font-size:${14+Math.random()*12}px;left:${20+Math.random()*60}vw;top:-30px;z-index:99999;pointer-events:none;animation:fall ${1+Math.random()}s ease-in forwards`
+    document.body.appendChild(s)
+    setTimeout(()=>s.remove(),2000)
+  },i*60)
+}
+const cs=document.createElement('style')
+cs.textContent='@keyframes fall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}'
+document.head.appendChild(cs)
+
+/* =========================================================
+   SCROLL REVEAL — minimal, just opacity+translateY
+   ========================================================= */
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.style.opacity='1'
+      e.target.style.transform='translateY(0)'
+      observer.unobserve(e.target)
+    }
+  })
+},{threshold:0.1})
+
+document.querySelectorAll('.feat-card,.price-card,.testi-card').forEach((el,i)=>{
+  el.style.opacity='0'
+  el.style.transform='translateY(16px)'
+  el.style.transition=`opacity 0.4s ease ${i%4*60}ms,transform 0.4s ease ${i%4*60}ms`
+  observer.observe(el)
+})
+
+/* Animate XP counter in hero */
+const xpEl=document.querySelector('.xp-badge')
+let xp=0
+setInterval(()=>{
+  xp+=Math.floor(Math.random()*3)
+  if(xp>0)xpEl.innerHTML=`<span class="xp-dot"></span> ${xp} XP`
+},4000)
+</script>
+</body>
+</html>
