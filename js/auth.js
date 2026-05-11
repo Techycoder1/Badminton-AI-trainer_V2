@@ -2,16 +2,12 @@
    Shuttlestepz — auth.js  (V2)
    Thin wrapper around database.js
    Keeps window.AUTH API so all pages work without changes.
-   ============================================================
-   Load on every page:
-     <script type="module" src="js/auth.js"></script>
-   (database.js is imported internally — no separate tag needed)
    ============================================================ */
 
 import DB from './database.js'
 import PREMIUM from './premium.js'
 
-/* ── Creator emails (must match premium.js) ──────────────────── */
+/* ── Creator emails ──────────────────────────────────────────── */
 const CREATOR_EMAILS = [
   'techycoder1@gmail.com',
 ]
@@ -111,17 +107,81 @@ const AUTH = {
   },
 
   // ── Getters ───────────────────────────────────────────────
-  currentUser()  { return getCache() },
+  currentUser() { return getCache() },
 
   // ── Guards ────────────────────────────────────────────────
+
+  /*
+   * FIX: requireAuth was synchronous — read cache, redirect if null.
+   * Problem: on page load, DB.onAuthReady hasn't fired yet, so cache
+   * is empty even for logged-in users → instant redirect to login.
+   *
+   * Fix: wait up to 4 seconds for either:
+   *   a) cache to be populated by DB.onAuthReady  (happy path)
+   *   b) Firebase to confirm no user (genuinely logged out)
+   * Then decide whether to redirect or resolve with the user.
+   */
   requireAuth(redirect = 'login.html') {
-    const u = getCache()
-    if (!u) { window.location.href = redirect; return null }
-    return u
+    return new Promise((resolve) => {
+      // Already cached — resolve immediately
+      const cached = getCache()
+      if (cached) { resolve(cached); return }
+
+      // Wait for ssz-user-ready or a confirmed "no user" state
+      let resolved = false
+
+      // Listen for successful auth population
+      const onReady = (e) => {
+        if (resolved) return
+        resolved = true
+        window.removeEventListener('ssz-user-ready', onReady)
+        resolve(e.detail)
+      }
+      window.addEventListener('ssz-user-ready', onReady)
+
+      // Also poll the cache directly every 100ms as a fallback
+      // (covers cases where the event was fired before this listener attached)
+      const poll = setInterval(() => {
+        const u = getCache()
+        if (u && !resolved) {
+          resolved = true
+          clearInterval(poll)
+          window.removeEventListener('ssz-user-ready', onReady)
+          resolve(u)
+        }
+      }, 100)
+
+      // Timeout: if nothing after 4s, user is genuinely not logged in
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          clearInterval(poll)
+          window.removeEventListener('ssz-user-ready', onReady)
+          // Only redirect if still no cache
+          if (!getCache()) {
+            window.location.href = redirect
+            resolve(null)
+          } else {
+            resolve(getCache())
+          }
+        }
+      }, 4000)
+    })
   },
+
   requireGuest(redirect = 'dashboard.html') {
-    if (getCache()) window.location.href = redirect
+    // Check cache immediately
+    if (getCache()) { window.location.href = redirect; return }
+    // Also redirect once auth fires, in case cache was empty on load
+    const onReady = () => {
+      window.removeEventListener('ssz-user-ready', onReady)
+      window.location.href = redirect
+    }
+    window.addEventListener('ssz-user-ready', onReady)
+    // Cancel listener after 3s if still no user (they're a genuine guest)
+    setTimeout(() => window.removeEventListener('ssz-user-ready', onReady), 3000)
   },
+
   requireRole(role, redirect = 'dashboard.html') {
     const u = getCache()
     if (!u || u.role !== role) { window.location.href = redirect; return null }
@@ -132,7 +192,6 @@ const AUTH = {
   isPremium() {
     const u = getCache()
     if (!u) return false
-    // Creator always gets premium free
     if (CREATOR_EMAILS.includes((u.email || '').toLowerCase())) return true
     return u.plan === 'premium' || u.plan === 'school'
   },
@@ -199,8 +258,6 @@ const AUTH = {
   async currentStats() {
     const u = getCache(); if (!u) return null
     try {
-      // Pass uid explicitly — avoids _requireUID() failing if
-      // Firebase auth state hasn't fired yet in database.js
       const p        = await DB.getUserProfile(u.uid)
       const sessions = await DB.getSessions({ uid: u.uid, limitN: 20 })
       const lvl      = calcLevelInfo(p.xp || 0)
