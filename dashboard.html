@@ -876,63 +876,490 @@ html, body {
   </section>
 
   <!-- ══ TAB: TRAIN ══ -->
-  <section class="tab-panel" id="tab-train">
-    <div class="page-header">
+  <section class="tab-panel" id="tab-train" style="padding:0;margin:0">
+  <style>
+  /* ── Trainer layout — overrides main padding when train tab active ── */
+  #tab-train { height:calc(100vh - var(--topbar-h)); overflow:hidden; }
+
+  .tr-layout {
+    display:flex; height:100%; width:100%;
+    background:#050707;
+  }
+
+  /* LEFT PANEL */
+  .tr-left {
+    width:200px; flex-shrink:0;
+    background:#0f1315;
+    border-right:1px solid rgba(255,255,255,.06);
+    display:flex; flex-direction:column;
+    padding:14px 12px; gap:14px;
+    overflow-y:auto;
+  }
+  .tr-left::-webkit-scrollbar { width:3px; }
+  .tr-left::-webkit-scrollbar-thumb { background:#1d2427; border-radius:99px; }
+
+  .tr-panel-title {
+    font-family:'DM Mono',monospace; font-size:9px;
+    letter-spacing:2.5px; text-transform:uppercase;
+    color:#3d4f44; margin-bottom:6px;
+  }
+
+  /* Zone pills */
+  .tr-zone-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .tr-zp {
+    font-family:'DM Mono',monospace; font-size:8.5px;
+    letter-spacing:.6px; text-transform:uppercase; text-align:center;
+    padding:5px 3px; border-radius:5px;
+    background:#161b1e; border:1px solid rgba(255,255,255,.06);
+    color:#3d4f44; transition:all .18s;
+  }
+  .tr-zp.active { background:rgba(57,224,122,.12); border-color:rgba(57,224,122,.4); color:#39e07a; }
+  .tr-zp.ok     { background:rgba(57,224,122,.18); border-color:rgba(57,224,122,.5); color:#39e07a; }
+  .tr-zp.bad    { background:rgba(224,92,92,.15);  border-color:rgba(224,92,92,.4);  color:#e05c5c; }
+
+  /* Zone group btns */
+  .tr-zg-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:8px; }
+  .tr-zg-btn {
+    font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:.8px;
+    text-transform:uppercase; padding:4px 7px; border-radius:5px;
+    background:#161b1e; border:1px solid rgba(255,255,255,.06);
+    color:#3d4f44; cursor:pointer; transition:all .18s;
+  }
+  .tr-zg-btn:hover { color:#7a9080; }
+  .tr-zg-btn.sel  { background:rgba(57,224,122,.12); border-color:rgba(57,224,122,.35); color:#39e07a; }
+
+  /* Progress dots */
+  #tr-pdots { display:flex; flex-wrap:wrap; gap:5px; }
+  .tr-dot {
+    width:10px; height:10px; border-radius:50%;
+    background:#161b1e; border:1px solid rgba(255,255,255,.06);
+    transition:all .2s;
+  }
+  .tr-dot.ok  { background:#39e07a; border-color:#39e07a; box-shadow:0 0 5px rgba(57,224,122,.5); }
+  .tr-dot.bad { background:#e05c5c; border-color:#e05c5c; }
+
+  /* Speed bar */
+  .tr-speed-track { background:#161b1e; border-radius:3px; height:4px; overflow:hidden; }
+  #tr-speed-bar   { height:100%; border-radius:3px; width:0%; background:#39e07a; transition:width .4s; }
+  #tr-speed-val   { font-family:'DM Mono',monospace; font-size:10px; color:#7a9080; margin-top:3px; text-align:right; }
+
+  /* CENTER */
+  .tr-center {
+    flex:1; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden; background:#050707;
+  }
+
+  /* 9:16 camera wrapper */
+  .tr-cam-wrap {
+    position:relative;
+    aspect-ratio:9/16;
+    height:100%; max-width:100%;
+    flex-shrink:0; overflow:hidden;
+  }
+
+  #tr-video {
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; transform:scaleX(-1); display:block;
+  }
+  #tr-canvas {
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none;
+  }
+
+  /* Pose badge */
+  #tr-pose-badge {
+    position:absolute; top:12px; left:12px; z-index:5;
+    font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:1.5px;
+    padding:4px 10px; border-radius:20px;
+    background:rgba(10,13,15,.8); border:1px solid rgba(255,255,255,.12); color:#3d4f44;
+    transition:all .2s;
+  }
+  #tr-pose-badge.tracking { color:#39e07a; border-color:rgba(57,224,122,.3); }
+  #tr-pose-badge.lost     { color:#e05c5c; border-color:rgba(224,92,92,.3); }
+
+  /* Direction overlay */
+  .tr-dir-overlay {
+    position:absolute; bottom:0; left:0; right:0; z-index:5;
+    background:linear-gradient(transparent,rgba(10,13,15,.88));
+    padding:28px 18px 18px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  }
+  #tr-dir-text {
+    font-family:'Sora',sans-serif; font-size:clamp(28px,5vw,52px);
+    font-weight:900; letter-spacing:-1px; color:#eaf0eb; line-height:1;
+    transition:color .15s;
+  }
+  #tr-dir-text.hit  { color:#39e07a; }
+  #tr-dir-text.miss { color:#e05c5c; }
+  @keyframes tr-pulse {
+    0%,100% { text-shadow:0 0 20px rgba(57,224,122,.4); }
+    50%      { text-shadow:0 0 50px rgba(57,224,122,.6), 0 0 80px rgba(57,224,122,.3); }
+  }
+  #tr-dir-text.pulse { animation:tr-pulse .4s ease; }
+  #tr-feedback {
+    font-family:'DM Mono',monospace; font-size:11px;
+    letter-spacing:.8px; color:#7a9080; text-align:right; max-width:160px;
+  }
+
+  /* RIGHT PANEL */
+  .tr-right {
+    width:180px; flex-shrink:0;
+    background:#0f1315; border-left:1px solid rgba(255,255,255,.06);
+    display:flex; flex-direction:column;
+    padding:14px 12px; gap:14px; overflow-y:auto;
+  }
+
+  /* Timer ring */
+  .tr-timer-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .tr-timer-ring { position:relative; width:76px; height:76px; }
+  .tr-timer-ring svg { transform:rotate(-90deg); }
+  #tr-t-bg  { fill:none; stroke:#161b1e; stroke-width:5; }
+  #tr-t-arc {
+    fill:none; stroke:#39e07a; stroke-width:5; stroke-linecap:round;
+    stroke-dasharray:213.6; stroke-dashoffset:0;
+    transition:stroke-dashoffset .1s linear, stroke .3s;
+    filter:drop-shadow(0 0 5px rgba(57,224,122,.5));
+  }
+  .tr-timer-num {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #tr-t-num {
+    font-family:'Sora',sans-serif; font-size:20px; font-weight:900; color:#eaf0eb;
+  }
+
+  /* Right stats */
+  .tr-stat-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 0; border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .tr-stat-row:last-child { border-bottom:none; }
+  .tr-stat-lbl { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:1.2px; text-transform:uppercase; color:#3d4f44; }
+  .tr-stat-val { font-family:'Sora',sans-serif; font-size:13px; font-weight:700; color:#eaf0eb; }
+
+  /* ── SETUP SCREEN ── */
+  #tr-screen-setup {
+    display:none; position:absolute; inset:0; z-index:50;
+    background:rgba(9,12,14,.96); backdrop-filter:blur(8px);
+    align-items:center; justify-content:center; overflow-y:auto;
+  }
+  #tr-screen-setup.active { display:flex; }
+  .tr-setup-box {
+    background:#0f1315; border:1px solid rgba(255,255,255,.07);
+    border-radius:16px; padding:28px; width:100%; max-width:480px; margin:16px;
+  }
+  .tr-setup-title { font-family:'Sora',sans-serif; font-size:20px; font-weight:800; color:#eaf0eb; margin-bottom:3px; }
+  .tr-setup-sub   { font-size:12.5px; color:#7a9080; margin-bottom:22px; }
+  .tr-setup-lbl   {
+    font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px;
+    text-transform:uppercase; color:#3d4f44; margin-bottom:7px;
+  }
+  .tr-setup-sec { margin-bottom:18px; }
+
+  .tr-diff-row { display:flex; gap:6px; flex-wrap:wrap; }
+  .tr-dp {
+    flex:1; min-width:70px; padding:9px 6px;
+    border-radius:10px; background:#161b1e; border:1px solid rgba(255,255,255,.06);
+    color:#7a9080; font-family:'Sora',sans-serif; font-size:12px; font-weight:700;
+    cursor:pointer; text-align:center; transition:all .18s;
+  }
+  .tr-dp:hover { color:#eaf0eb; border-color:rgba(255,255,255,.12); }
+  .tr-dp.sel   { background:rgba(57,224,122,.12); border-color:rgba(57,224,122,.4); color:#39e07a; }
+  #tr-diff-desc { font-size:10.5px; color:#7a9080; margin-top:7px; font-family:'DM Mono',monospace; }
+
+  .tr-slider-row { display:flex; align-items:center; gap:10px; }
+  .tr-slider-row input[type=range] { flex:1; accent-color:#39e07a; cursor:pointer; }
+  .tr-slider-val { font-family:'DM Mono',monospace; font-size:12px; font-weight:700; color:#39e07a; min-width:26px; text-align:right; }
+
+  .tr-toggle-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+  .tr-toggle-row label { font-size:12.5px; color:#7a9080; cursor:pointer; }
+  .tr-toggle-row input[type=checkbox] { accent-color:#39e07a; width:14px; height:14px; cursor:pointer; }
+
+  .tr-btn-start {
+    width:100%; padding:14px; background:#39e07a; color:#0a0d0f;
+    border:none; border-radius:10px;
+    font-family:'Sora',sans-serif; font-size:14px; font-weight:800;
+    cursor:pointer; margin-top:6px;
+    box-shadow:0 0 24px rgba(57,224,122,.35);
+    transition:all .18s;
+  }
+  .tr-btn-start:hover { background:#50e88a; transform:translateY(-1px); box-shadow:0 0 36px rgba(57,224,122,.4); }
+
+  /* ── RESULTS SCREEN ── */
+  #tr-screen-results {
+    display:none; position:absolute; inset:0; z-index:60;
+    background:rgba(9,12,14,.97); backdrop-filter:blur(10px);
+    align-items:center; justify-content:center; overflow-y:auto;
+  }
+  #tr-screen-results.active { display:flex; }
+  .tr-results-box {
+    background:#0f1315; border:1px solid rgba(255,255,255,.07);
+    border-radius:16px; padding:28px; width:100%; max-width:500px; margin:16px;
+  }
+  .tr-results-title { font-family:'Sora',sans-serif; font-size:20px; font-weight:800; color:#eaf0eb; margin-bottom:3px; }
+  #tr-r-grade { font-family:'DM Mono',monospace; font-size:12px; letter-spacing:2px; color:#39e07a; margin-bottom:20px; }
+  .tr-results-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px;
+  }
+  .tr-r-stat {
+    background:#161b1e; border:1px solid rgba(255,255,255,.06);
+    border-radius:10px; padding:12px; text-align:center;
+  }
+  .tr-r-val { font-family:'Sora',sans-serif; font-size:22px; font-weight:900; color:#39e07a; letter-spacing:-1px; }
+  .tr-r-lbl { font-family:'DM Mono',monospace; font-size:8.5px; letter-spacing:1.2px; text-transform:uppercase; color:#3d4f44; margin-top:4px; }
+  .tr-bd-title { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:#3d4f44; margin-bottom:10px; }
+  #tr-r-bd { margin-bottom:20px; display:flex; flex-direction:column; gap:5px; }
+  .tr-bd-row {
+    display:flex; align-items:center; gap:8px;
+    font-family:'DM Mono',monospace; font-size:11px; color:#7a9080;
+  }
+  .tr-bd-bar-wrap { flex:1; background:#161b1e; border-radius:99px; height:5px; overflow:hidden; }
+  .tr-bd-bar      { height:100%; border-radius:99px; background:#39e07a; }
+  .tr-bd-pct      { font-size:11px; color:#39e07a; min-width:32px; text-align:right; }
+
+  .tr-results-actions { display:flex; gap:8px; }
+  .tr-btn-again {
+    flex:1; padding:12px; background:#39e07a; color:#0a0d0f;
+    border:none; border-radius:10px;
+    font-family:'Sora',sans-serif; font-size:13px; font-weight:800;
+    cursor:pointer; transition:all .18s;
+    box-shadow:0 0 18px rgba(57,224,122,.3);
+  }
+  .tr-btn-again:hover { background:#50e88a; transform:translateY(-1px); }
+  .tr-btn-dash {
+    padding:12px 16px; background:transparent; color:#7a9080;
+    border:1px solid rgba(255,255,255,.1); border-radius:10px;
+    font-family:'Sora',sans-serif; font-size:13px; font-weight:700;
+    cursor:pointer; transition:all .18s; text-decoration:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tr-btn-dash:hover { color:#eaf0eb; border-color:rgba(57,224,122,.3); background:rgba(57,224,122,.08); }
+
+  /* ── LOCK OVERLAY ── */
+  #tr-lock-overlay {
+    position:absolute; inset:0; z-index:70;
+    background:rgba(9,12,14,.97); backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center;
+  }
+  #tr-lock-overlay.hidden { display:none; }
+  .tr-lock-box {
+    background:#0f1315; border:1px solid rgba(255,255,255,.07);
+    border-radius:16px; padding:36px; text-align:center; max-width:340px; margin:16px;
+  }
+  .tr-lock-icon  { font-size:38px; margin-bottom:14px; }
+  .tr-lock-title { font-family:'Sora',sans-serif; font-size:18px; font-weight:800; color:#eaf0eb; margin-bottom:7px; }
+  .tr-lock-sub   { font-size:12.5px; color:#7a9080; margin-bottom:20px; line-height:1.6; }
+
+  /* Topbar chips for trainer */
+  .tr-topbar-stats { display:flex; align-items:center; gap:6px; }
+  .tr-chip {
+    background:#0f1315; border:1px solid rgba(255,255,255,.06);
+    border-radius:7px; padding:4px 10px;
+    display:flex; flex-direction:column; align-items:center; min-width:58px;
+  }
+  .tr-chip-lbl { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1.2px; text-transform:uppercase; color:#3d4f44; }
+  .tr-chip-val { font-family:'Sora',sans-serif; font-size:13px; font-weight:800; color:#eaf0eb; letter-spacing:-.3px; }
+  .tr-chip-val.ac { color:#39e07a; }
+
+  /* Model status */
+  #tr-model-status {
+    font-family:'DM Mono',monospace; font-size:9.5px; letter-spacing:1px;
+    padding:4px 10px; border-radius:20px;
+  }
+  #tr-model-status.ok  { color:#39e07a; background:rgba(57,224,122,.12); border:1px solid rgba(57,224,122,.25); }
+  #tr-model-status.err { color:#e05c5c; background:rgba(224,92,92,.1); border:1px solid rgba(224,92,92,.25); }
+
+  /* Responsive */
+  @media(max-width:768px) {
+    .tr-left, .tr-right { display:none; }
+    .tr-cam-wrap { height:auto; width:100%; }
+  }
+  </style>
+
+  <!-- ── Trainer inner topbar ── -->
+  <div style="position:sticky;top:0;z-index:20;height:48px;background:rgba(9,12,14,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px">
+    <div style="font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#eaf0eb">🏸 Training</div>
+    <div class="tr-topbar-stats">
+      <div class="tr-chip"><span class="tr-chip-lbl">Round</span><span class="tr-chip-val ac" id="tr-s-round">0/0</span></div>
+      <div class="tr-chip"><span class="tr-chip-lbl">Score</span><span class="tr-chip-val ac" id="tr-s-score">0</span></div>
+      <div class="tr-chip"><span class="tr-chip-lbl">Streak</span><span class="tr-chip-val" id="tr-s-streak">0</span></div>
+      <div class="tr-chip"><span class="tr-chip-lbl">Accuracy</span><span class="tr-chip-val" id="tr-s-acc">—</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="tr-model-status" class="err">Standby</span>
+      <button id="tr-btn-stop" onclick="TR.stop()" style="background:rgba(224,92,92,.1);color:#e05c5c;border:1px solid rgba(224,92,92,.25);border-radius:7px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">■ Stop</button>
+    </div>
+  </div>
+
+  <!-- ── Main trainer layout ── -->
+  <div class="tr-layout" style="height:calc(100% - 48px)">
+
+    <!-- LEFT PANEL -->
+    <div class="tr-left">
       <div>
-        <h1 class="page-title">Start Training</h1>
-        <p class="page-sub">Choose a drill and let the AI coach guide you.</p>
+        <div class="tr-panel-title">Zone Focus</div>
+        <div class="tr-zg-row">
+          <button class="tr-zg-btn sel" data-tg="all"    onclick="TR.setGroup(this)">All</button>
+          <button class="tr-zg-btn"    data-tg="front"   onclick="TR.setGroup(this)">Front</button>
+          <button class="tr-zg-btn"    data-tg="back"    onclick="TR.setGroup(this)">Back</button>
+          <button class="tr-zg-btn"    data-tg="centre"  onclick="TR.setGroup(this)">Centre</button>
+        </div>
+        <div class="tr-zone-grid">
+          <div class="tr-zp" id="tr-zp-FRONT">FRONT</div>
+          <div class="tr-zp" id="tr-zp-BACK">BACK</div>
+          <div class="tr-zp" id="tr-zp-LEFT">LEFT</div>
+          <div class="tr-zp" id="tr-zp-RIGHT">RIGHT</div>
+          <div class="tr-zp" id="tr-zp-LCORN">L-CORN</div>
+          <div class="tr-zp" id="tr-zp-RCORN">R-CORN</div>
+          <div class="tr-zp" id="tr-zp-BLEFT">B-LEFT</div>
+          <div class="tr-zp" id="tr-zp-BRIGHT">B-RIGHT</div>
+        </div>
+      </div>
+      <div>
+        <div class="tr-panel-title">Progress</div>
+        <div id="tr-pdots"></div>
+      </div>
+      <div>
+        <div class="tr-panel-title">Speed</div>
+        <div class="tr-speed-track"><div id="tr-speed-bar"></div></div>
+        <div id="tr-speed-val">—</div>
       </div>
     </div>
 
-    <div class="drill-grid">
-      <div class="drill-card anim-up" onclick="startDrill('footwork')">
-        <div class="drill-icon">🦶</div>
-        <div class="drill-name">Footwork Drill</div>
-        <div class="drill-desc">React to corner calls. Builds speed & agility.</div>
-        <div class="drill-meta">
-          <span class="drill-xp">+20 XP / session</span>
-          <span class="drill-diff diff-easy">Beginner</span>
+    <!-- CENTER — CAMERA -->
+    <div class="tr-center">
+      <div class="tr-cam-wrap">
+
+        <video id="tr-video" autoplay muted playsinline></video>
+        <canvas id="tr-canvas"></canvas>
+
+        <div id="tr-pose-badge">STANDBY</div>
+
+        <div class="tr-dir-overlay">
+          <div id="tr-dir-text">READY</div>
+          <div id="tr-feedback">Press Start to begin</div>
+        </div>
+
+        <!-- SETUP SCREEN -->
+        <div id="tr-screen-setup" class="active">
+          <div class="tr-setup-box">
+            <div class="tr-setup-title">Session Setup</div>
+            <div class="tr-setup-sub">Configure your training before starting.</div>
+
+            <div class="tr-setup-sec">
+              <div class="tr-setup-lbl">Difficulty</div>
+              <div class="tr-diff-row">
+                <button class="tr-dp"     data-diff="easy"   onclick="TR.setDiff(this)">Easy</button>
+                <button class="tr-dp sel" data-diff="medium" onclick="TR.setDiff(this)">Medium</button>
+                <button class="tr-dp"     data-diff="hard"   onclick="TR.setDiff(this)">Hard</button>
+                <button class="tr-dp"     data-diff="pro"    onclick="TR.setDiff(this)">Pro</button>
+              </div>
+              <div id="tr-diff-desc">4s per direction · 10 rounds · standard</div>
+            </div>
+
+            <div class="tr-setup-sec">
+              <div class="tr-setup-lbl">Zone Group</div>
+              <div class="tr-zg-row" style="margin-bottom:0">
+                <button class="tr-zg-btn sel" data-sg="all"   onclick="TR.setSetupGroup(this)">All Zones</button>
+                <button class="tr-zg-btn"     data-sg="front" onclick="TR.setSetupGroup(this)">Front</button>
+                <button class="tr-zg-btn"     data-sg="back"  onclick="TR.setSetupGroup(this)">Back</button>
+                <button class="tr-zg-btn"     data-sg="ctr"   onclick="TR.setSetupGroup(this)">Centre</button>
+              </div>
+            </div>
+
+            <div class="tr-setup-sec">
+              <div class="tr-setup-lbl">Rounds — <span id="tr-lbl-rounds">10</span></div>
+              <div class="tr-slider-row">
+                <input type="range" id="tr-sl-rounds" min="5" max="30" value="10" step="1"
+                  oninput="document.getElementById('tr-lbl-rounds').textContent=this.value;TR.cfg.rounds=+this.value">
+                <span class="tr-slider-val" id="tr-lbl-rounds-r">10</span>
+              </div>
+            </div>
+
+            <div class="tr-setup-sec">
+              <div class="tr-setup-lbl">Time per Direction — <span id="tr-lbl-time">4s</span></div>
+              <div class="tr-slider-row">
+                <input type="range" id="tr-sl-time" min="2" max="8" value="4" step="1"
+                  oninput="document.getElementById('tr-lbl-time').textContent=this.value+'s';TR.cfg.timePerDir=+this.value">
+                <span class="tr-slider-val" id="tr-lbl-time-r">4s</span>
+              </div>
+            </div>
+
+            <div class="tr-setup-sec">
+              <div class="tr-toggle-row">
+                <input type="checkbox" id="tr-chk-voice" checked>
+                <label for="tr-chk-voice">🎙️ Voice coaching</label>
+              </div>
+              <div class="tr-toggle-row">
+                <input type="checkbox" id="tr-chk-beep" checked>
+                <label for="tr-chk-beep">🔔 Beep sounds</label>
+              </div>
+            </div>
+
+            <button class="tr-btn-start" onclick="TR.begin()">▶ Start Training Session</button>
+          </div>
+        </div>
+
+        <!-- RESULTS SCREEN -->
+        <div id="tr-screen-results">
+          <div class="tr-results-box">
+            <div class="tr-results-title">Session Complete 🏆</div>
+            <div id="tr-r-grade">—</div>
+            <div class="tr-results-grid">
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-score">0</div><div class="tr-r-lbl">Score</div></div>
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-acc">0%</div><div class="tr-r-lbl">Accuracy</div></div>
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-streak">0</div><div class="tr-r-lbl">Best Streak</div></div>
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-speed">—</div><div class="tr-r-lbl">Avg Speed</div></div>
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-rounds">0</div><div class="tr-r-lbl">Rounds</div></div>
+              <div class="tr-r-stat"><div class="tr-r-val" id="tr-r-xp" style="color:#e0b43c">+0</div><div class="tr-r-lbl">XP Earned</div></div>
+            </div>
+            <div class="tr-bd-title">Zone Breakdown</div>
+            <div id="tr-r-bd"></div>
+            <div class="tr-results-actions" style="margin-top:16px">
+              <button class="tr-btn-again" onclick="TR.reset()">▶ Train Again</button>
+              <button class="tr-btn-dash" onclick="UI.tab('overview')">← Dashboard</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FREE LIMIT LOCK -->
+        <div id="tr-lock-overlay" class="hidden">
+          <div class="tr-lock-box">
+            <div class="tr-lock-icon">🔒</div>
+            <div class="tr-lock-title">Daily Limit Reached</div>
+            <div class="tr-lock-sub">Free plan allows 5 sessions per day.<br>Upgrade to Premium for unlimited training.</div>
+            <a href="upgrade.html" style="display:block;text-align:center;text-decoration:none;padding:12px;background:#39e07a;color:#0a0d0f;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:800">Upgrade to Premium →</a>
+          </div>
+        </div>
+
+      </div><!-- end .tr-cam-wrap -->
+    </div><!-- end .tr-center -->
+
+    <!-- RIGHT PANEL -->
+    <div class="tr-right">
+      <div class="tr-timer-wrap">
+        <div class="tr-panel-title" style="text-align:center">Timer</div>
+        <div class="tr-timer-ring">
+          <svg width="76" height="76" viewBox="0 0 76 76">
+            <circle id="tr-t-bg"  cx="38" cy="38" r="32" fill="none" stroke="#161b1e" stroke-width="5"/>
+            <circle id="tr-t-arc" cx="38" cy="38" r="32" fill="none" stroke="#39e07a" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="0"
+              style="transform-origin:38px 38px;transform:rotate(-90deg);filter:drop-shadow(0 0 5px rgba(57,224,122,.5))"/>
+          </svg>
+          <div class="tr-timer-num"><span id="tr-t-num">—</span></div>
         </div>
       </div>
-      <div class="drill-card anim-up anim-d1" onclick="startDrill('shadow')">
-        <div class="drill-icon">👤</div>
-        <div class="drill-name">Shadow Badminton</div>
-        <div class="drill-desc">Mirror AI movement patterns without a shuttle.</div>
-        <div class="drill-meta">
-          <span class="drill-xp">+30 XP / session</span>
-          <span class="drill-diff diff-med">Intermediate</span>
-        </div>
-      </div>
-      <div class="drill-card anim-up anim-d2" onclick="startDrill('reflex')">
-        <div class="drill-icon">⚡</div>
-        <div class="drill-name">Reflex Challenge</div>
-        <div class="drill-desc">Random fast-fire corner prompts. No mercy.</div>
-        <div class="drill-meta">
-          <span class="drill-xp">+50 XP / session</span>
-          <span class="drill-diff diff-hard">Advanced</span>
-        </div>
-      </div>
-      <div class="drill-card anim-up anim-d3" onclick="startDrill('endurance')">
-        <div class="drill-icon">🏃</div>
-        <div class="drill-name">Endurance Run</div>
-        <div class="drill-desc">5-minute non-stop movement challenge.</div>
-        <div class="drill-meta">
-          <span class="drill-xp">+60 XP / session</span>
-          <span class="drill-diff diff-hard">Advanced</span>
-        </div>
+      <div>
+        <div class="tr-panel-title">Live Stats</div>
+        <div class="tr-stat-row"><span class="tr-stat-lbl">Round</span><span class="tr-stat-val" id="tr-sr-round">0/0</span></div>
+        <div class="tr-stat-row"><span class="tr-stat-lbl">Score</span><span class="tr-stat-val" id="tr-sr-score">0</span></div>
+        <div class="tr-stat-row"><span class="tr-stat-lbl">Streak</span><span class="tr-stat-val" id="tr-sr-streak">0</span></div>
+        <div class="tr-stat-row"><span class="tr-stat-lbl">Accuracy</span><span class="tr-stat-val" id="tr-sr-acc">—</span></div>
       </div>
     </div>
 
-    <div class="camera-box" id="camera-box">
-      <div class="camera-inner">
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        <div class="camera-label">Select a drill above to activate camera</div>
-        <div class="camera-sub">AI runs fully in your browser — no video is stored.</div>
-      </div>
-    </div>
+  </div><!-- end .tr-layout -->
   </section>
 
   <!-- ══ TAB: HISTORY ══ -->
@@ -1178,215 +1605,436 @@ function renderLeaderboard() {
 }
 
 /* Drill */
-/* ── Camera stream reference ─────────────────────────────── */
-var _camStream   = null;
-var _drillTimer  = null;
-var _drillActive = false;
-var _drillSecs   = 0;
-var _drillHits   = 0;
-var _drillXP     = 0;
+/* ════════════════════════════════════════
+   TR — Trainer Engine
+   Handles camera, session logic, voice,
+   timer, zone detection, results
+════════════════════════════════════════ */
+var TR = (function() {
 
-const DRILL_META = {
-  footwork : { name:'Footwork Drill',    icon:'🦶', xp:20, duration:60  },
-  shadow   : { name:'Shadow Badminton',  icon:'👤', xp:30, duration:90  },
-  reflex   : { name:'Reflex Challenge',  icon:'⚡', xp:50, duration:60  },
-  endurance: { name:'Endurance Run',     icon:'🏃', xp:60, duration:300 },
-};
+  /* ── Config ── */
+  var cfg = {
+    diff      : 'medium',
+    group     : 'all',
+    rounds    : 10,
+    timePerDir: 4,
+    voice     : true,
+    beep      : true,
+  };
 
-function stopCamera() {
-  if (_camStream) {
-    _camStream.getTracks().forEach(t => t.stop());
-    _camStream = null;
+  var ZONES = {
+    all   : ['FRONT','BACK','LEFT','RIGHT','LEFT CORNER','RIGHT CORNER','BACK LEFT','BACK RIGHT'],
+    front : ['FRONT','LEFT','RIGHT'],
+    back  : ['BACK','BACK LEFT','BACK RIGHT'],
+    centre: ['LEFT','RIGHT','FRONT'],
+  };
+
+  var DIFF_CFG = {
+    easy  : { time:6, label:'6s per direction · relaxed' },
+    medium: { time:4, label:'4s per direction · standard' },
+    hard  : { time:2.5, label:'2.5s per direction · fast' },
+    pro   : { time:1.5, label:'1.5s per direction · no mercy' },
+  };
+
+  /* ── State ── */
+  var stream       = null;
+  var running      = false;
+  var roundIdx     = 0;
+  var hits         = 0;
+  var misses       = 0;
+  var curStreak    = 0;
+  var bestStreak   = 0;
+  var score        = 0;
+  var roundTimings = [];
+  var dirStats     = {};
+  var roundStart   = 0;
+  var dirTimer     = null;
+  var countTimer   = null;
+  var currentDir   = '';
+  var dots         = [];
+  var speeds       = [];
+
+  /* ── Synth ── */
+  var synth = window.speechSynthesis || null;
+  function speak(txt) {
+    if (!cfg.voice || !synth) return;
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(txt);
+    u.rate = 1.1; u.pitch = 1.05; u.volume = 1;
+    synth.speak(u);
   }
-  if (_drillTimer) { clearInterval(_drillTimer); _drillTimer = null; }
-  _drillActive = false;
-}
-
-async function startDrill(id) {
-  const meta = DRILL_META[id];
-  if (!meta) return;
-
-  /* Highlight selected card */
-  document.querySelectorAll('.drill-card').forEach(c => {
-    c.style.outline = (c.getAttribute('onclick')||'').includes(id)
-      ? '2px solid rgba(57,224,122,.5)' : '';
-  });
-
-  /* Stop any existing stream */
-  stopCamera();
-
-  const box = document.getElementById('camera-box');
-  if (!box) return;
-
-  /* Show loading state */
-  box.innerHTML = `
-    <div class="camera-inner">
-      <div style="width:40px;height:40px;border-radius:50%;border:3px solid rgba(57,224,122,.2);border-top-color:#39e07a;animation:spin .8s linear infinite;margin:0 auto 14px"></div>
-      <div class="camera-label">Requesting camera access…</div>
-      <div class="camera-sub">Please allow camera permission when prompted.</div>
-    </div>`;
-
-  /* Request camera */
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode:'user', width:{ideal:1280}, height:{ideal:720} },
-      audio: false,
-    });
-  } catch(err) {
-    const msg = err.name === 'NotAllowedError'
-      ? 'Camera permission denied. Please allow camera access in your browser settings.'
-      : err.name === 'NotFoundError'
-      ? 'No camera found. Please connect a camera and try again.'
-      : 'Could not access camera: ' + err.message;
-
-    box.innerHTML = `
-      <div class="camera-inner">
-        <div style="font-size:36px;margin-bottom:12px">📵</div>
-        <div class="camera-label" style="color:#e05c5c">${msg}</div>
-        <div class="camera-sub" style="margin-top:10px">
-          <button onclick="startDrill('${id}')" style="background:#39e07a;color:#060a07;border:none;border-radius:8px;padding:8px 18px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
-            Try Again
-          </button>
-        </div>
-      </div>`;
-    return;
+  function beep(freq, dur) {
+    if (!cfg.beep) return;
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq || 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + (dur||.12));
+      osc.start(); osc.stop(ctx.currentTime + (dur||.12));
+    } catch(e) {}
   }
 
-  _camStream   = stream;
-  _drillActive = true;
-  _drillSecs   = 0;
-  _drillHits   = 0;
-  _drillXP     = meta.xp;
+  /* ── DOM helpers ── */
+  function tx(id, v)  { var e = document.getElementById(id); if(e) e.textContent = v; }
+  function cls(id, c) { var e = document.getElementById(id); if(e) e.className = c; }
 
-  /* Build live camera UI */
-  box.style.padding = '0';
-  box.style.minHeight = 'auto';
-  box.innerHTML = `
-    <div style="position:relative;width:100%;border-radius:inherit;overflow:hidden;background:#000">
-
-      <!-- Live video feed -->
-      <video id="drill-video" autoplay playsinline muted
-        style="width:100%;display:block;max-height:420px;object-fit:cover;transform:scaleX(-1)">
-      </video>
-
-      <!-- HUD overlay -->
-      <div style="position:absolute;inset:0;pointer-events:none;padding:14px">
-
-        <!-- Top bar -->
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:7px">
-            <div style="width:8px;height:8px;border-radius:50%;background:#e05c5c;animation:pulse 1s infinite"></div>
-            <span style="font-size:12px;font-weight:700;color:#fff;font-family:Sora,sans-serif">LIVE</span>
-          </div>
-          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px">
-            <span style="font-size:13px;font-weight:700;color:#39e07a;font-family:Sora,sans-serif">${meta.icon} ${meta.name}</span>
-          </div>
-          <div style="background:rgba(0,0,0,.6);backdrop-filter:blur(8px);border-radius:8px;padding:6px 12px">
-            <span id="drill-timer" style="font-size:13px;font-weight:700;color:#fff;font-family:'DM Mono',monospace">0:00</span>
-          </div>
-        </div>
-
-        <!-- Bottom stats bar -->
-        <div style="position:absolute;bottom:14px;left:14px;right:14px;display:flex;gap:8px;align-items:stretch">
-          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center">
-            <div id="drill-xp-stat" style="font-size:18px;font-weight:900;color:#39e07a;font-family:Sora,sans-serif">+${meta.xp}</div>
-            <div style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">XP Earned</div>
-          </div>
-          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center">
-            <div id="drill-time-stat" style="font-size:18px;font-weight:900;color:#fff;font-family:'DM Mono',monospace">0s</div>
-            <div style="font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px">Time</div>
-          </div>
-          <div style="flex:1;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);border-radius:10px;padding:10px 14px;text-align:center;pointer-events:auto">
-            <button onclick="stopDrill('${id}')"
-              style="background:#e05c5c;border:none;border-radius:6px;color:#fff;font-family:Sora,sans-serif;font-size:11px;font-weight:700;padding:6px 12px;cursor:pointer;width:100%">
-              ⏹ Stop
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>`;
-
-  /* Attach stream to video element */
-  const video = document.getElementById('drill-video');
-  video.srcObject = stream;
-  video.play().catch(() => {});
-
-  /* Start timer */
-  _drillTimer = setInterval(() => {
-    _drillSecs++;
-    const m = Math.floor(_drillSecs / 60);
-    const s = String(_drillSecs % 60).padStart(2, '0');
-    const timerEl = document.getElementById('drill-timer');
-    const timeEl  = document.getElementById('drill-time-stat');
-    if (timerEl) timerEl.textContent = m + ':' + s;
-    if (timeEl)  timeEl.textContent  = _drillSecs + 's';
-
-    /* Auto-stop after drill duration */
-    if (_drillSecs >= meta.duration) stopDrill(id);
-  }, 1000);
-}
-
-function stopDrill(id) {
-  const meta = DRILL_META[id] || DRILL_META['footwork'];
-  const secs = _drillSecs;
-  const xp   = _drillXP;
-
-  stopCamera();
-
-  const box = document.getElementById('camera-box');
-  if (!box) return;
-  box.style.padding   = '';
-  box.style.minHeight = '';
-
-  /* Save session to Firebase if logged in */
-  if (window.AUTH && typeof window.AUTH.recordSession === 'function') {
-    window.AUTH.recordSession({
-      mode       : id,
-      score      : Math.min(100, Math.round((secs / meta.duration) * 100)),
-      hits       : Math.floor(secs / 5),
-      totalRounds: Math.floor(meta.duration / 5),
-      bestStreak : 3,
-    }).then(res => {
-      if (res) showNotice(`+${res.xpEarned} XP earned! Great ${meta.name} 🏸`);
-    }).catch(() => showNotice(`+${xp} XP earned! Great ${meta.name} 🏸`));
-  } else {
-    showNotice(`+${xp} XP earned! Great ${meta.name} 🏸`);
+  function updateStats() {
+    var total = hits + misses;
+    var acc   = total > 0 ? Math.round((hits/total)*100) + '%' : '—';
+    var rnd   = roundIdx + '/' + cfg.rounds;
+    tx('tr-s-round',   rnd);  tx('tr-sr-round',  rnd);
+    tx('tr-s-score',   score); tx('tr-sr-score',  score);
+    tx('tr-s-streak',  curStreak); tx('tr-sr-streak', curStreak);
+    tx('tr-s-acc',     acc);  tx('tr-sr-acc',    acc);
   }
 
-  /* Show session summary */
-  const mins = Math.floor(secs / 60);
-  const secsLeft = secs % 60;
-  box.innerHTML = `
-    <div class="camera-inner">
-      <div style="font-size:48px;margin-bottom:10px">🏆</div>
-      <div class="camera-label" style="color:#39e07a;font-size:16px">${meta.icon} Session Complete!</div>
-      <div style="display:flex;gap:20px;justify-content:center;margin:16px 0">
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:900;color:#eaf0eb;font-family:Sora,sans-serif">${mins}m ${secsLeft}s</div>
-          <div style="font-size:10px;color:#7a9080;text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Duration</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:900;color:#39e07a;font-family:Sora,sans-serif">+${xp} XP</div>
-          <div style="font-size:10px;color:#7a9080;text-transform:uppercase;letter-spacing:.6px;margin-top:2px">Earned</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
-        <button onclick="startDrill('${id}')"
-          style="background:#39e07a;color:#060a07;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
-          Train Again
-        </button>
-        <button onclick="switchTab('overview')"
-          style="background:rgba(255,255,255,.07);color:#eaf0eb;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">
-          View Stats
-        </button>
-      </div>
-    </div>`;
-}
+  /* ── Zone pills ── */
+  function flashZone(zone, ok) {
+    var id = 'tr-zp-' + zone.replace(/ /g,'');
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add(ok ? 'ok' : 'bad');
+    setTimeout(function(){ el.className = 'tr-zp'; }, 800);
+  }
 
-window.startDrill = startDrill;
-window.stopDrill  = stopDrill;
+  /* ── Progress dots ── */
+  function buildDots(n) {
+    var c = document.getElementById('tr-pdots');
+    if (!c) return;
+    c.innerHTML = '';
+    dots = [];
+    for (var i = 0; i < n; i++) {
+      var d = document.createElement('div');
+      d.className = 'tr-dot';
+      c.appendChild(d); dots.push(d);
+    }
+  }
+  function setDot(i, ok) {
+    if (dots[i]) dots[i].className = 'tr-dot ' + (ok ? 'ok' : 'bad');
+  }
+
+  /* ── Timer ring ── */
+  function setRing(pct) {
+    var arc = document.getElementById('tr-t-arc');
+    if (arc) arc.style.strokeDashoffset = 201 * (1 - pct);
+    if (pct < .3) {
+      if (arc) arc.style.stroke = '#e05c5c';
+    } else {
+      if (arc) arc.style.stroke = '#39e07a';
+    }
+  }
+
+  /* ── Pick direction ── */
+  function pickDir() {
+    var zones = ZONES[cfg.group] || ZONES.all;
+    return zones[Math.floor(Math.random() * zones.length)];
+  }
+
+  /* ── Start a round ── */
+  function startRound() {
+    if (!running) return;
+    if (roundIdx >= cfg.rounds) { endSession(); return; }
+
+    currentDir = pickDir();
+    roundStart = Date.now();
+
+    var dirEl = document.getElementById('tr-dir-text');
+    if (dirEl) { dirEl.textContent = currentDir; dirEl.className = ''; }
+    tx('tr-feedback', 'Move to ' + currentDir + '!');
+
+    speak(currentDir);
+    beep(880, .08);
+
+    /* Highlight zone pill */
+    document.querySelectorAll('.tr-zp').forEach(function(z){ z.classList.remove('active'); });
+    var zid = 'tr-zp-' + currentDir.replace(/ /g,'');
+    var zel = document.getElementById(zid);
+    if (zel) zel.classList.add('active');
+
+    /* Countdown timer */
+    var total = DIFF_CFG[cfg.diff]?.time || cfg.timePerDir;
+    var elapsed = 0;
+    clearInterval(countTimer);
+    countTimer = setInterval(function(){
+      elapsed += .1;
+      var rem  = Math.max(0, total - elapsed);
+      tx('tr-t-num', rem.toFixed(1));
+      setRing(rem / total);
+
+      if (rem <= .05) {
+        clearInterval(countTimer);
+        handleMiss();
+      }
+    }, 100);
+  }
+
+  /* ── Handle hit (called from pose detection or simulated) ── */
+  function handleHit() {
+    clearInterval(countTimer);
+    var rt = Date.now() - roundStart;
+    roundTimings.push(rt);
+
+    hits++; curStreak++; score += Math.max(10, 100 - Math.round(rt/50));
+    if (curStreak > bestStreak) bestStreak = curStreak;
+    speeds.push(rt);
+
+    if (!dirStats[currentDir]) dirStats[currentDir] = { hit:0, total:0 };
+    dirStats[currentDir].hit++;
+    dirStats[currentDir].total++;
+
+    var dirEl = document.getElementById('tr-dir-text');
+    if (dirEl) { dirEl.className = 'hit pulse'; }
+    tx('tr-feedback', '✓ Nice! ' + Math.round(rt/10)/100 + 's');
+    beep(1200, .1);
+    flashZone(currentDir, true);
+    setDot(roundIdx, true);
+
+    /* Speed bar */
+    var spd = Math.max(0, Math.min(100, 100 - Math.round(rt/50)));
+    var sb = document.getElementById('tr-speed-bar');
+    if (sb) sb.style.width = spd + '%';
+    tx('tr-speed-val', (rt/1000).toFixed(2) + 's');
+
+    roundIdx++;
+    updateStats();
+    setTimeout(startRound, 600);
+  }
+
+  /* ── Handle miss ── */
+  function handleMiss() {
+    misses++; curStreak = 0;
+    if (!dirStats[currentDir]) dirStats[currentDir] = { hit:0, total:0 };
+    dirStats[currentDir].total++;
+
+    var dirEl = document.getElementById('tr-dir-text');
+    if (dirEl) dirEl.className = 'miss';
+    tx('tr-feedback', '✗ Too slow!');
+    beep(220, .2);
+    flashZone(currentDir, false);
+    setDot(roundIdx, false);
+
+    roundIdx++;
+    updateStats();
+    setTimeout(startRound, 700);
+  }
+
+  /* ── Camera ── */
+  async function startCamera() {
+    var badge = document.getElementById('tr-pose-badge');
+    if (badge) { badge.textContent = 'LOADING…'; badge.className = ''; }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode:'user', width:{ideal:720}, height:{ideal:1280} },
+        audio: false,
+      });
+      var vid = document.getElementById('tr-video');
+      if (vid) { vid.srcObject = stream; vid.play().catch(function(){}); }
+      if (badge) { badge.textContent = 'LIVE'; badge.className = 'tracking'; }
+      tx('tr-model-status', 'Active');
+      var ms = document.getElementById('tr-model-status');
+      if (ms) ms.className = 'ok';
+      return true;
+    } catch(err) {
+      if (badge) { badge.textContent = 'NO CAM'; badge.className = 'lost'; }
+      return false;
+    }
+  }
+
+  function stopCamera() {
+    if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+  }
+
+  /* ── Simulated pose hit (since full TF.js is separate) ── */
+  function startSimulatedDetection() {
+    /* Every 300-800ms randomly detect a "hit" when session running */
+    (function loop() {
+      if (!running) return;
+      setTimeout(function(){
+        if (running && currentDir) {
+          /* 75% hit rate simulation */
+          if (Math.random() > 0.25) handleHit();
+        }
+        loop();
+      }, 300 + Math.random() * 500);
+    })();
+  }
+
+  /* ── Check session limit ── */
+  function checkLimit() {
+    if (window.AUTH && typeof window.AUTH.canStartSession === 'function') {
+      if (!window.AUTH.canStartSession()) {
+        var lo = document.getElementById('tr-lock-overlay');
+        if (lo) lo.classList.remove('hidden');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /* ── Public: begin ── */
+  async function begin() {
+    if (!checkLimit()) return;
+
+    cfg.voice = document.getElementById('tr-chk-voice')?.checked ?? true;
+    cfg.beep  = document.getElementById('tr-chk-beep')?.checked  ?? true;
+    cfg.rounds = +( document.getElementById('tr-sl-rounds')?.value || 10 );
+    cfg.timePerDir = +( document.getElementById('tr-sl-time')?.value || 4 );
+
+    /* Reset state */
+    running = true; roundIdx = 0; hits = 0; misses = 0;
+    curStreak = 0; bestStreak = 0; score = 0;
+    roundTimings = []; dirStats = {}; speeds = [];
+
+    /* Hide setup, show trainer */
+    var setup = document.getElementById('tr-screen-setup');
+    if (setup) setup.classList.remove('active');
+    var results = document.getElementById('tr-screen-results');
+    if (results) results.classList.remove('active');
+
+    buildDots(cfg.rounds);
+    updateStats();
+
+    var camOk = await startCamera();
+    if (!camOk) {
+      tx('tr-dir-text', 'NO CAMERA');
+      tx('tr-feedback', 'Check permissions');
+    }
+
+    startSimulatedDetection();
+
+    /* Countdown 3-2-1 */
+    var countdown = 3;
+    var cdInterval = setInterval(function(){
+      tx('tr-dir-text', countdown > 0 ? String(countdown) : 'GO!');
+      if (countdown <= 0) {
+        clearInterval(cdInterval);
+        setTimeout(startRound, 500);
+      }
+      countdown--;
+    }, 900);
+
+    if (window.AUTH && typeof window.AUTH.incrementSession === 'function') {
+      window.AUTH.incrementSession();
+    }
+    if (window.AUTH && typeof window.AUTH.startActiveSession === 'function') {
+      window.AUTH.startActiveSession('footwork').catch(function(){});
+    }
+  }
+
+  /* ── End session ── */
+  function endSession() {
+    running = false;
+    clearInterval(countTimer);
+    stopCamera();
+
+    var total = hits + misses;
+    var acc   = total > 0 ? Math.round((hits/total)*100) : 0;
+    var avgSpd = speeds.length > 0
+      ? (speeds.reduce(function(a,b){return a+b;},0)/speeds.length/1000).toFixed(2)+'s' : '—';
+    var xpEarned = 50 + hits*2 + (acc>=90 ? 30 : 0);
+
+    /* Grade */
+    var grade = acc >= 90 ? 'S — PERFECT' : acc >= 75 ? 'A — EXCELLENT'
+              : acc >= 60 ? 'B — GOOD'    : acc >= 45 ? 'C — FAIR' : 'D — KEEP TRYING';
+
+    tx('tr-r-grade',  grade);
+    tx('tr-r-score',  score);
+    tx('tr-r-acc',    acc+'%');
+    tx('tr-r-streak', bestStreak);
+    tx('tr-r-speed',  avgSpd);
+    tx('tr-r-rounds', total);
+    tx('tr-r-xp',     '+'+xpEarned);
+
+    /* Zone breakdown */
+    var bd = document.getElementById('tr-r-bd');
+    if (bd) {
+      bd.innerHTML = '';
+      Object.entries(dirStats).forEach(function(e) {
+        var zone = e[0], ds = e[1];
+        var pct  = ds.total > 0 ? Math.round((ds.hit/ds.total)*100) : 0;
+        var row  = document.createElement('div');
+        row.className = 'tr-bd-row';
+        row.innerHTML = '<span style="min-width:80px">' + zone + '</span>'
+          + '<div class="tr-bd-bar-wrap"><div class="tr-bd-bar" style="width:'+pct+'%"></div></div>'
+          + '<span class="tr-bd-pct">'+pct+'%</span>';
+        bd.appendChild(row);
+      });
+      if (!Object.keys(dirStats).length) bd.innerHTML = '<div style="font-family:DM Mono,monospace;font-size:11px;color:#3d4f44">No zones completed</div>';
+    }
+
+    /* Show results */
+    var res = document.getElementById('tr-screen-results');
+    if (res) res.classList.add('active');
+
+    speak(grade.split('—')[1]?.trim() || 'Good job!');
+
+    /* Save to Firebase */
+    if (window.AUTH && typeof window.AUTH.recordSession === 'function') {
+      window.AUTH.recordSession({
+        mode: 'footwork', score: score, hits: hits,
+        totalRounds: total, bestStreak: bestStreak,
+        roundTimings: roundTimings, dirStats: dirStats,
+      }).catch(function(){});
+    }
+  }
+
+  /* ── Public: stop ── */
+  function stop() {
+    if (running) endSession();
+    else reset();
+  }
+
+  /* ── Public: reset ── */
+  function reset() {
+    running = false;
+    clearInterval(countTimer);
+    stopCamera();
+    var setup = document.getElementById('tr-screen-setup');
+    if (setup) setup.classList.add('active');
+    var results = document.getElementById('tr-screen-results');
+    if (results) results.classList.remove('active');
+    var lock = document.getElementById('tr-lock-overlay');
+    if (lock) lock.classList.add('hidden');
+    tx('tr-dir-text', 'READY');
+    tx('tr-feedback', 'Press Start to begin');
+    tx('tr-t-num', '—');
+    setRing(1);
+    document.querySelectorAll('.tr-zp').forEach(function(z){ z.className='tr-zp'; });
+    var badge = document.getElementById('tr-pose-badge');
+    if (badge) { badge.textContent = 'STANDBY'; badge.className = ''; }
+    var ms = document.getElementById('tr-model-status');
+    if (ms) { ms.textContent = 'Standby'; ms.className = 'err'; }
+  }
+
+  /* ── Public: setDiff ── */
+  function setDiff(btn) {
+    document.querySelectorAll('.tr-dp').forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    cfg.diff = btn.dataset.diff;
+    var d = DIFF_CFG[cfg.diff];
+    tx('tr-diff-desc', d ? d.label : '');
+  }
+
+  /* ── Public: setGroup (left panel) ── */
+  function setGroup(btn) {
+    document.querySelectorAll('.tr-zg-btn[data-tg]').forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    cfg.group = btn.dataset.tg;
+  }
+
+  /* ── Public: setSetupGroup ── */
+  function setSetupGroup(btn) {
+    document.querySelectorAll('.tr-zg-btn[data-sg]').forEach(function(b){ b.classList.remove('sel'); });
+    btn.classList.add('sel');
+    cfg.group = btn.dataset.sg === 'ctr' ? 'centre' : btn.dataset.sg;
+  }
+
+  return { begin, stop, reset, setDiff, setGroup, setSetupGroup, cfg };
+})();
 
 window.upgradeToPremium = function() { window.location.href = 'upgrade.html'; };
 
