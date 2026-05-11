@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log In — Shuttlestepz</title>
-<link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/base.css">
-<link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/login.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In — Shuttlestepz</title>
+  <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/base.css">
+  <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/login.css">
 </head>
 <body>
 <div class="bg-noise"></div>
@@ -124,7 +124,7 @@
   </div>
 </div>
 
-<!-- ═══ SINGLE module script — no separate firebase.js or auth.js tags needed ═══ -->
+<!-- FIX: Only ONE module script — removed the duplicate <script type="module" src="js/auth.js"> -->
 <script type="module">
   import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
 
@@ -218,6 +218,8 @@
     btn.disabled = false; btn.textContent = 'Send Reset Link'
   })
 </script>
-<script type="module" src="js/auth.js"></script>
+<!-- FIX: REMOVED the duplicate: <script type="module" src="js/auth.js"></script> -->
+<!-- That second script was importing auth.js a second time, causing Firebase to
+     init twice and creating a race condition that cleared the session cache -->
 </body>
 </html>
