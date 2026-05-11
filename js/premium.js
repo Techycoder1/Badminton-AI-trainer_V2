@@ -1,516 +1,539 @@
 /* ============================================================
-   Shuttlestepz — premium.js
-   Premium plan management, simulated payment flow,
-   feature gating, and creator bypass system.
-   ============================================================ */
+   SHUTTLESTEPZ PREMIUM — premium.js
+   Animations · Canvas · Billing Toggle · Modal · FAQ
+============================================================ */
 
-/* ── Creator accounts (always get premium free) ────────────── */
-const CREATOR_EMAILS = [
-  'aaroh@shuttlestepz.com',   // ← add your real email here
-  'techycoder1@gmail.com',    // ← add your real email here
-]
+/* ============================================================
+   CANVAS: Animated Shuttle Particle Background
+============================================================ */
+(function initCanvas() {
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-/* ── Plan config ────────────────────────────────────────────── */
-const PLANS = {
-  free: {
-    id           : 'free',
-    name         : 'Free',
-    price        : 0,
-    sessionsDay  : 5,
-    features     : [
-      '5 training sessions/day',
-      'Basic footwork drill',
-      'Score history',
-      'Global leaderboard',
-    ],
-    locked: [
-      'Reaction Blitz',
-      'Shadow Pro',
-      'Elite Multi-Shuttle',
-      'AI Coach Insights',
-      'Advanced Analytics',
-      'Heatmap',
-    ],
-  },
-  premium: {
-    id           : 'premium',
-    name         : 'Premium',
-    priceMonthly : 7,
-    priceYearly  : 60,
-    sessionsDay  : Infinity,
-    features     : [
-      'Unlimited training sessions',
-      'All 6 training modes',
-      'AI Coach Insights',
-      'Advanced analytics & heatmap',
-      'Footwork consistency score',
-      'Priority leaderboard badge',
-      'Export session data',
-      'School/Coach panel access',
-    ],
-    locked: [],
-  },
-  school: {
-    id           : 'school',
-    name         : 'School',
-    priceMonthly : 49,
-    priceYearly  : 450,
-    sessionsDay  : Infinity,
-    features     : [
-      'Everything in Premium',
-      'Up to 50 student accounts',
-      'Coach dashboard',
-      'Class performance reports',
-      'School leaderboard',
-      'Attendance tracking',
-      'Bulk invite links',
-    ],
-    locked: [],
-  },
-}
+  let W, H, particles = [], lines = [];
+  const SHUTTLE = '🏸';
+  const COLORS = ['rgba(0,212,255,', 'rgba(168,85,247,', 'rgba(52,211,153,', 'rgba(251,191,36,'];
 
-/* ── Premium features list (for gating) ────────────────────── */
-const PREMIUM_FEATURES = {
-  REACTION_BLITZ      : 'reaction_blitz',
-  SHADOW_PRO          : 'shadow_pro',
-  ELITE_MULTI         : 'elite_multi',
-  AI_INSIGHTS         : 'ai_insights',
-  ADVANCED_ANALYTICS  : 'advanced_analytics',
-  HEATMAP             : 'heatmap',
-  EXPORT_DATA         : 'export_data',
-  SCHOOL_PANEL        : 'school_panel',
-  UNLIMITED_SESSIONS  : 'unlimited_sessions',
-}
-
-/* ── PREMIUM MODULE ─────────────────────────────────────────── */
-const PREMIUM = (() => {
-
-  /* ── Check if email is creator ───────────────────────────── */
-  function isCreator(email) {
-    return CREATOR_EMAILS.includes((email || '').toLowerCase().trim())
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
   }
+  resize();
+  window.addEventListener('resize', resize);
 
-  /* ── Check if user has premium access ───────────────────── */
-  function hasPremium(user) {
-    if (!user) return false
-    if (isCreator(user.email)) return true
-    return user.plan === 'premium' || user.plan === 'school'
-  }
-
-  /* ── Check specific feature access ──────────────────────── */
-  function canAccess(user, feature) {
-    if (!user) return false
-    if (isCreator(user.email)) return true
-    if (hasPremium(user)) return true
-    // Free features
-    const freeFeatures = [
-      'footwork', 'shadow', 'leaderboard', 'history', 'basic_analytics'
-    ]
-    return freeFeatures.includes(feature)
-  }
-
-  /* ── Sessions remaining today ────────────────────────────── */
-  function sessionsRemaining(user) {
-    if (!user) return 0
-    if (hasPremium(user)) return Infinity
-    const today = new Date().toDateString()
-    if (user.lastSessionDay !== today) return PLANS.free.sessionsDay
-    return Math.max(0, PLANS.free.sessionsDay - (user.sessionsToday || 0))
-  }
-
-  /* ── Show upgrade modal ──────────────────────────────────── */
-  function showUpgradeModal(featureName = '') {
-    const existing = document.getElementById('premium-modal')
-    if (existing) existing.remove()
-
-    const modal = document.createElement('div')
-    modal.id    = 'premium-modal'
-    modal.innerHTML = `
-      <div class="pm-backdrop" id="pm-backdrop">
-        <div class="pm-box">
-          <button class="pm-close" id="pm-close">✕</button>
-
-          <div class="pm-header">
-            <div class="pm-crown">👑</div>
-            <h2 class="pm-title">Unlock Premium</h2>
-            <p class="pm-sub">
-              ${featureName
-                ? `<strong style="color:var(--accent)">${featureName}</strong> is a Premium feature.`
-                : 'Get unlimited access to all training modes and analytics.'}
-            </p>
-          </div>
-
-          <!-- Plan toggle -->
-          <div class="pm-toggle">
-            <button class="pm-tog active" id="tog-monthly" onclick="PREMIUM.toggleBilling('monthly')">Monthly</button>
-            <button class="pm-tog" id="tog-yearly" onclick="PREMIUM.toggleBilling('yearly')">
-              Yearly <span class="pm-save">Save 30%</span>
-            </button>
-          </div>
-
-          <!-- Plan cards -->
-          <div class="pm-cards">
-
-            <div class="pm-card">
-              <div class="pm-card-name">Free</div>
-              <div class="pm-card-price">$0<span>/mo</span></div>
-              <ul class="pm-features">
-                <li>✓ 5 sessions/day</li>
-                <li>✓ Basic footwork drill</li>
-                <li>✓ Leaderboard</li>
-                <li class="pm-locked">✗ AI Coach Insights</li>
-                <li class="pm-locked">✗ Advanced Analytics</li>
-                <li class="pm-locked">✗ All training modes</li>
-              </ul>
-              <button class="pm-btn pm-btn-ghost" disabled>Current Plan</button>
-            </div>
-
-            <div class="pm-card pm-card-highlight">
-              <div class="pm-popular">MOST POPULAR</div>
-              <div class="pm-card-name">Premium ⭐</div>
-              <div class="pm-card-price" id="pm-price">$7<span>/mo</span></div>
-              <ul class="pm-features">
-                <li>✓ Unlimited sessions</li>
-                <li>✓ All 6 training modes</li>
-                <li>✓ AI Coach Insights</li>
-                <li>✓ Advanced Analytics</li>
-                <li>✓ Heatmap & consistency score</li>
-                <li>✓ Priority leaderboard badge</li>
-              </ul>
-              <button class="pm-btn pm-btn-primary" onclick="PREMIUM.simulatePayment('premium')">
-                Upgrade Now →
-              </button>
-            </div>
-
-          </div>
-
-          <p class="pm-note">🔒 Secure demo payment · No real card needed · Cancel anytime</p>
-        </div>
-      </div>`
-
-    // Inject styles if not already present
-    if (!document.getElementById('premium-styles')) {
-      const style = document.createElement('style')
-      style.id    = 'premium-styles'
-      style.textContent = `
-        .pm-backdrop {
-          position:fixed;inset:0;background:rgba(0,0,0,0.8);
-          z-index:999;display:flex;align-items:center;justify-content:center;
-          padding:20px;backdrop-filter:blur(6px);animation:pmFadeIn .2s ease;
-        }
-        @keyframes pmFadeIn { from{opacity:0} to{opacity:1} }
-        .pm-box {
-          background:#0e1610;border:1px solid rgba(56,210,90,0.3);
-          border-radius:20px;padding:36px;width:100%;max-width:600px;
-          position:relative;animation:pmSlideUp .25s ease;
-          max-height:90vh;overflow-y:auto;
-        }
-        @keyframes pmSlideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
-        .pm-close {
-          position:absolute;top:16px;right:16px;background:none;
-          border:none;color:#6e9475;font-size:20px;cursor:pointer;
-        }
-        .pm-close:hover{color:#e2ede4}
-        .pm-header{text-align:center;margin-bottom:24px}
-        .pm-crown{font-size:40px;margin-bottom:8px}
-        .pm-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;
-          color:#e2ede4;margin-bottom:8px}
-        .pm-sub{font-size:14px;color:#6e9475;line-height:1.5}
-        .pm-toggle{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
-        .pm-tog{padding:8px 20px;border-radius:8px;border:1px solid rgba(56,210,90,0.3);
-          background:transparent;color:#6e9475;cursor:pointer;font-size:13px;
-          font-family:'Syne',sans-serif;font-weight:600;transition:all .15s}
-        .pm-tog.active{background:rgba(56,210,90,0.1);border-color:#38d25a;color:#38d25a}
-        .pm-save{font-size:10px;background:#38d25a;color:#050908;
-          padding:2px 6px;border-radius:4px;margin-left:6px}
-        .pm-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-        .pm-card{background:#111a13;border:1px solid rgba(56,210,90,0.12);
-          border-radius:14px;padding:20px}
-        .pm-card-highlight{border-color:#38d25a;background:linear-gradient(135deg,#111a13,rgba(56,210,90,0.05));
-          position:relative}
-        .pm-popular{position:absolute;top:-1px;left:50%;transform:translateX(-50%);
-          background:#38d25a;color:#050908;font-size:9px;letter-spacing:2px;
-          font-weight:700;padding:3px 12px;border-radius:0 0 8px 8px}
-        .pm-card-name{font-family:'Syne',sans-serif;font-size:16px;
-          font-weight:700;color:#e2ede4;margin-bottom:6px;margin-top:8px}
-        .pm-card-price{font-family:'Syne',sans-serif;font-size:32px;
-          font-weight:800;color:#38d25a;margin-bottom:14px}
-        .pm-card-price span{font-size:14px;color:#6e9475}
-        .pm-features{list-style:none;margin-bottom:18px}
-        .pm-features li{font-size:12px;color:#6e9475;padding:4px 0;
-          border-bottom:1px solid rgba(56,210,90,0.06)}
-        .pm-features li:last-child{border:none}
-        .pm-locked{color:#364e3a!important;text-decoration:line-through}
-        .pm-btn{width:100%;padding:11px;border-radius:8px;font-family:'Syne',sans-serif;
-          font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
-        .pm-btn-primary{background:#38d25a;color:#050908;
-          box-shadow:0 0 20px rgba(56,210,90,0.25)}
-        .pm-btn-primary:hover{background:#4ae870}
-        .pm-btn-ghost{background:transparent;color:#364e3a;
-          border:1px solid rgba(56,210,90,0.15);cursor:not-allowed}
-        .pm-note{text-align:center;font-size:11px;color:#364e3a}
-        @media(max-width:520px){
-          .pm-cards{grid-template-columns:1fr}
-          .pm-box{padding:24px 18px}
-        }
-      `
-      document.head.appendChild(style)
+  // Particle class
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.vx = (Math.random() - 0.5) * 0.6;
+      this.vy = (Math.random() - 0.5) * 0.6;
+      this.alpha = Math.random() * 0.4 + 0.1;
+      this.radius = Math.random() * 2 + 1;
+      this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      this.pulse = Math.random() * Math.PI * 2;
     }
-
-    document.body.appendChild(modal)
-
-    document.getElementById('pm-close').onclick = closeUpgradeModal
-    document.getElementById('pm-backdrop').onclick = (e) => {
-      if (e.target.id === 'pm-backdrop') closeUpgradeModal()
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      this.pulse += 0.02;
+      if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+    }
+    draw() {
+      const a = this.alpha * (0.7 + 0.3 * Math.sin(this.pulse));
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = this.color + a + ')';
+      ctx.fill();
     }
   }
 
-  /* ── Toggle billing period in modal ─────────────────────── */
-  let _billing = 'monthly'
-  function toggleBilling(period) {
-    _billing = period
-    document.querySelectorAll('.pm-tog').forEach(b => b.classList.remove('active'))
-    document.getElementById(`tog-${period}`)?.classList.add('active')
-    const priceEl = document.getElementById('pm-price')
-    if (priceEl) {
-      priceEl.innerHTML = period === 'yearly'
-        ? '$5<span>/mo · billed $60/yr</span>'
-        : '$7<span>/mo</span>'
+  // Shuttle-shaped tracers
+  class ShuttleTracer {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = -50;
+      this.speed = Math.random() * 1.5 + 0.5;
+      this.angle = Math.random() * 0.4 - 0.2;
+      this.alpha = Math.random() * 0.3 + 0.1;
+      this.size = Math.random() * 14 + 8;
+      this.trail = [];
+      this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    }
+    update() {
+      this.trail.push({ x: this.x, y: this.y });
+      if (this.trail.length > 12) this.trail.shift();
+      this.x += Math.sin(this.angle) * this.speed;
+      this.y += this.speed;
+      if (this.y > H + 50) this.reset();
+    }
+    draw() {
+      // Draw trail
+      for (let i = 0; i < this.trail.length; i++) {
+        const a = (i / this.trail.length) * this.alpha * 0.5;
+        ctx.beginPath();
+        ctx.arc(this.trail[i].x, this.trail[i].y, (i / this.trail.length) * 3, 0, Math.PI * 2);
+        ctx.fillStyle = this.color + a + ')';
+        ctx.fill();
+      }
+      // Draw shuttle glyph
+      ctx.save();
+      ctx.globalAlpha = this.alpha;
+      ctx.font = `${this.size}px serif`;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.angle + Math.PI / 4);
+      ctx.fillText(SHUTTLE, -this.size / 2, this.size / 2);
+      ctx.restore();
     }
   }
 
-  /* ── Close modal ─────────────────────────────────────────── */
-  function closeUpgradeModal() {
-    document.getElementById('premium-modal')?.remove()
+  // Init
+  for (let i = 0; i < 80; i++) particles.push(new Particle());
+  for (let i = 0; i < 8; i++) {
+    const t = new ShuttleTracer();
+    t.y = Math.random() * H; // distribute initially
+    lines.push(t);
   }
 
-  /* ── Simulate payment flow ───────────────────────────────── */
-  async function simulatePayment(plan) {
-    const modal = document.getElementById('pm-modal-inner') || document.querySelector('.pm-box')
-    if (modal) {
-      modal.innerHTML = `
-        <div style="text-align:center;padding:40px 20px">
-          <div style="font-size:48px;margin-bottom:16px">💳</div>
-          <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;
-            color:#e2ede4;margin-bottom:8px">Processing payment…</h2>
-          <p style="color:#6e9475;font-size:13px">Please wait</p>
-          <div style="margin:24px auto;width:40px;height:40px;border:3px solid rgba(56,210,90,0.2);
-            border-top-color:#38d25a;border-radius:50%;animation:spin .7s linear infinite"></div>
-          <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-        </div>`
+  // Grid scan lines
+  let scanY = 0;
+  function drawGrid() {
+    ctx.strokeStyle = 'rgba(0,212,255,0.03)';
+    ctx.lineWidth = 1;
+    const step = 60;
+    for (let x = 0; x < W; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, H);
+      ctx.stroke();
     }
+    for (let y = 0; y < H; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+    // Moving scan line
+    scanY = (scanY + 0.5) % H;
+    const grad = ctx.createLinearGradient(0, scanY - 60, 0, scanY + 60);
+    grad.addColorStop(0, 'rgba(0,212,255,0)');
+    grad.addColorStop(0.5, 'rgba(0,212,255,0.04)');
+    grad.addColorStop(1, 'rgba(0,212,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, scanY - 60, W, 120);
+  }
 
-    // Simulate 2s payment processing
-    await new Promise(r => setTimeout(r, 2000))
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    drawGrid();
+    particles.forEach(p => { p.update(); p.draw(); });
+    lines.forEach(l => { l.update(); l.draw(); });
 
-    // Apply premium to current user
-    const user = window.AUTH?.currentUser()
-    if (user) {
-      try {
-        await window.AUTH.upgradePlan(user.uid, plan)
-        showNotification('🎉 Welcome to Premium! All features unlocked.', 'success')
-      } catch(e) {
-        console.error('[PREMIUM] upgrade error:', e)
+    // Draw connection lines between close particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(0,212,255,${0.06 * (1 - dist / 100)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
       }
     }
-
-    // Show success screen
-    if (modal) {
-      modal.innerHTML = `
-        <div style="text-align:center;padding:40px 20px">
-          <div style="font-size:56px;margin-bottom:16px">🎉</div>
-          <h2 style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;
-            color:#38d25a;margin-bottom:8px">You're Premium!</h2>
-          <p style="color:#6e9475;font-size:14px;margin-bottom:24px;line-height:1.6">
-            All features unlocked. Enjoy unlimited training, AI insights, and advanced analytics.
-          </p>
-          <button onclick="location.reload()" style="padding:13px 32px;background:#38d25a;
-            color:#050908;border:none;border-radius:10px;font-family:'Syne',sans-serif;
-            font-size:14px;font-weight:700;cursor:pointer">
-            Start Training →
-          </button>
-        </div>`
-    }
+    requestAnimationFrame(animate);
   }
+  animate();
+})();
 
-  /* ── Lock overlay for premium features ───────────────────── */
-  function lockElement(el, featureName = 'This feature') {
-    if (!el) return
-    el.style.position = 'relative'
-    el.style.overflow = 'hidden'
-
-    const overlay = document.createElement('div')
-    overlay.className = 'premium-lock-overlay'
-    overlay.innerHTML = `
-      <div class="plo-inner">
-        <div class="plo-icon">🔒</div>
-        <div class="plo-title">Premium Required</div>
-        <div class="plo-sub">${featureName} is a Premium feature</div>
-        <button class="plo-btn" onclick="PREMIUM.showUpgradeModal('${featureName}')">
-          Unlock Premium
-        </button>
-      </div>`
-
-    if (!document.getElementById('plo-styles')) {
-      const s = document.createElement('style')
-      s.id = 'plo-styles'
-      s.textContent = `
-        .premium-lock-overlay {
-          position:absolute;inset:0;
-          background:rgba(5,9,8,0.88);
-          backdrop-filter:blur(4px);
-          display:flex;align-items:center;justify-content:center;
-          z-index:10;border-radius:inherit;
-        }
-        .plo-inner{text-align:center;padding:20px}
-        .plo-icon{font-size:28px;margin-bottom:8px}
-        .plo-title{font-family:'Syne',sans-serif;font-size:16px;
-          font-weight:700;color:#e2ede4;margin-bottom:4px}
-        .plo-sub{font-size:12px;color:#6e9475;margin-bottom:14px}
-        .plo-btn{padding:9px 20px;background:#38d25a;color:#050908;
-          border:none;border-radius:8px;font-family:'Syne',sans-serif;
-          font-size:12px;font-weight:700;cursor:pointer}
-        .plo-btn:hover{background:#4ae870}
-      `
-      document.head.appendChild(s)
-    }
-
-    el.appendChild(overlay)
+/* ============================================================
+   NAV: Scroll effect
+============================================================ */
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('nav');
+  if (nav) {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
   }
+});
 
-  /* ── Toast notifications ─────────────────────────────────── */
-  function showNotification(message, type = 'info', duration = 4000) {
-    let container = document.getElementById('toast-container')
-    if (!container) {
-      container = document.createElement('div')
-      container.id = 'toast-container'
-      container.style.cssText = `
-        position:fixed;bottom:24px;right:24px;z-index:9999;
-        display:flex;flex-direction:column;gap:10px;
-      `
-      document.body.appendChild(container)
+/* ============================================================
+   HAMBURGER MENU
+============================================================ */
+const hamburger = document.getElementById('hamburger');
+const mobileMenu = document.getElementById('mobileMenu');
+if (hamburger && mobileMenu) {
+  hamburger.addEventListener('click', () => {
+    mobileMenu.classList.toggle('open');
+  });
+}
+function closeMobileMenu() {
+  if (mobileMenu) mobileMenu.classList.remove('open');
+}
+
+/* ============================================================
+   SMOOTH SCROLL
+============================================================ */
+function scrollTo(selector) {
+  const el = document.querySelector(selector);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ============================================================
+   ANIMATED COUNTERS
+============================================================ */
+function animateCounter(el) {
+  const target = parseInt(el.dataset.target, 10);
+  const duration = 2000;
+  const start = performance.now();
+  function update(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.floor(eased * target).toLocaleString();
+    if (progress < 1) requestAnimationFrame(update);
+    else el.textContent = target.toLocaleString();
+  }
+  requestAnimationFrame(update);
+}
+
+/* ============================================================
+   SCROLL REVEAL + COUNTER TRIGGER
+============================================================ */
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
     }
+  });
+}, { threshold: 0.15 });
 
-    const colors = {
-      success : { bg:'rgba(56,210,90,0.12)', border:'rgba(56,210,90,0.35)', text:'#38d25a' },
-      error   : { bg:'rgba(224,72,72,0.12)',  border:'rgba(224,72,72,0.35)',  text:'#e04848' },
-      info    : { bg:'rgba(64,160,240,0.12)', border:'rgba(64,160,240,0.35)', text:'#40a0f0' },
-      xp      : { bg:'rgba(240,192,64,0.12)', border:'rgba(240,192,64,0.35)', text:'#f0c040' },
+const counterObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('[data-target]').forEach(animateCounter);
+      counterObserver.unobserve(entry.target);
     }
-    const c = colors[type] || colors.info
+  });
+}, { threshold: 0.3 });
 
-    const toast = document.createElement('div')
-    toast.style.cssText = `
-      background:${c.bg};border:1px solid ${c.border};border-radius:10px;
-      padding:12px 18px;font-size:13px;color:${c.text};
-      font-family:'DM Sans',sans-serif;max-width:300px;
-      animation:toastIn .25s ease;box-shadow:0 4px 20px rgba(0,0,0,0.3);
-    `
-    toast.innerHTML = message
+// Add reveal to elements
+document.addEventListener('DOMContentLoaded', () => {
+  // Sections
+  document.querySelectorAll('.features, .pricing, .compare, .testimonials, .faq, .leaderboard-section, .final-cta').forEach(el => {
+    el.classList.add('reveal');
+    revealObserver.observe(el);
+  });
 
-    if (!document.getElementById('toast-styles')) {
-      const s = document.createElement('style')
-      s.id = 'toast-styles'
-      s.textContent = `
-        @keyframes toastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes toastOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(20px)} }
-      `
-      document.head.appendChild(s)
+  // Feature cards with stagger
+  document.querySelectorAll('.feat-card').forEach((card, i) => {
+    card.style.transitionDelay = `${i * 80}ms`;
+    revealObserver.observe(card);
+  });
+
+  // Testimonial cards
+  document.querySelectorAll('.testi-card').forEach((card, i) => {
+    card.style.transitionDelay = `${i * 100}ms`;
+    card.classList.add('reveal');
+    revealObserver.observe(card);
+  });
+
+  // Pricing cards
+  document.querySelectorAll('.price-card').forEach((card, i) => {
+    card.style.transitionDelay = `${i * 120}ms`;
+    card.classList.add('reveal');
+    revealObserver.observe(card);
+  });
+
+  // Counter observer
+  const heroStats = document.querySelector('.hero-stats');
+  if (heroStats) counterObserver.observe(heroStats);
+
+  // Leaderboard bar animation
+  const lbObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // Bars already have widths set; CSS transition handles animation
+        lbObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  const lb = document.querySelector('.leaderboard-card');
+  if (lb) lbObserver.observe(lb);
+});
+
+/* ============================================================
+   BILLING TOGGLE
+============================================================ */
+const PRICES = {
+  student: { monthly: 199, annual: 159 },
+  coach:   { monthly: 399, annual: 319 },
+  school:  { monthly: 799, annual: 639 },
+};
+
+function toggleBilling() {
+  const isAnnual = document.getElementById('billingToggle').checked;
+  const mode = isAnnual ? 'annual' : 'monthly';
+
+  ['student', 'coach', 'school'].forEach(plan => {
+    const el = document.getElementById(`price-${plan}`);
+    const note = document.getElementById(`note-${plan}`);
+    if (!el) return;
+
+    // Animate number change
+    const current = parseInt(el.textContent, 10);
+    const target = PRICES[plan][mode];
+    animateNumberChange(el, current, target);
+
+    if (note) {
+      if (isAnnual) {
+        const annualTotal = (target * 12).toLocaleString();
+        note.textContent = `Billed as ₹${annualTotal}/year`;
+        note.style.display = 'block';
+      } else {
+        note.style.display = 'none';
+      }
     }
+  });
 
-    container.appendChild(toast)
+  // Update modal plan sub if open
+  updateModalPrice();
+}
+
+function animateNumberChange(el, from, to) {
+  const duration = 400;
+  const start = performance.now();
+  function update(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 2);
+    el.textContent = Math.round(from + (to - from) * eased);
+    if (t < 1) requestAnimationFrame(update);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(update);
+}
+
+/* ============================================================
+   FAQ
+============================================================ */
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const answer = item.querySelector('.faq-a');
+  const icon = btn.querySelector('.faq-icon');
+  const isOpen = answer.classList.contains('open');
+
+  // Close all
+  document.querySelectorAll('.faq-a.open').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-icon.rotated').forEach(i => i.classList.remove('rotated'));
+
+  // Open clicked (if wasn't open)
+  if (!isOpen) {
+    answer.classList.add('open');
+    icon.classList.add('rotated');
+  }
+}
+
+/* ============================================================
+   MODAL
+============================================================ */
+let currentPlan = 'student';
+
+const PLAN_INFO = {
+  student: {
+    title: 'Start Your Free Trial',
+    sub: '7 days free, then ₹199/month',
+    name: 'Student Plan',
+    price: '₹199/month',
+  },
+  coach: {
+    title: 'Upgrade to Coach Plan',
+    sub: '7 days free, then ₹399/month',
+    name: 'Coach Plan',
+    price: '₹399/month',
+  },
+  school: {
+    title: 'Get Institution Access',
+    sub: '7 days free, then ₹799/month',
+    name: 'Institution Plan',
+    price: '₹799/month',
+  },
+};
+
+function openModal(plan) {
+  currentPlan = plan || 'student';
+  updateModalContent();
+  // Reset to step 1
+  showStep(1);
+  document.getElementById('modalOverlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(event) {
+  if (event && event.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function updateModalContent() {
+  const info = PLAN_INFO[currentPlan];
+  if (!info) return;
+  document.getElementById('modalPlanTitle').textContent = info.title;
+  document.getElementById('modalPlanSub').textContent = info.sub;
+  document.getElementById('mpcName').textContent = info.name;
+
+  const isAnnual = document.getElementById('billingToggle').checked;
+  const price = isAnnual
+    ? `₹${PRICES[currentPlan].annual}/month (billed annually)`
+    : info.price;
+  document.getElementById('mpcPrice').textContent = price;
+
+  const payBtn = document.getElementById('payBtnText');
+  if (payBtn) payBtn.textContent = `Start Free Trial — ${isAnnual ? '₹' + PRICES[currentPlan].annual : info.price.replace('/month', '')}`;
+}
+
+function updateModalPrice() {
+  if (document.getElementById('modalOverlay').classList.contains('active')) {
+    updateModalContent();
+  }
+}
+
+function showStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el = document.getElementById(`step${i}`);
+    if (el) el.classList.toggle('hidden', i !== n);
+  }
+}
+
+function goStep2() {
+  const email = document.getElementById('modalEmail');
+  if (!email || !email.value || !email.value.includes('@')) {
+    email.style.borderColor = '#f43f5e';
+    email.focus();
+    setTimeout(() => { email.style.borderColor = ''; }, 2000);
+    return;
+  }
+  showStep(2);
+}
+
+function goStep3() {
+  // Show loading state
+  const btn = document.querySelector('#step2 .btn-primary');
+  const btnText = document.getElementById('payBtnText');
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.textContent = 'Processing…';
+
+  setTimeout(() => {
+    if (btn) btn.disabled = false;
+    showStep(3);
+    // Fire confetti-like particles
+    fireCelebration();
+  }, 1800);
+}
+
+/* Credit card formatter */
+function formatCard(input) {
+  let v = input.value.replace(/\D/g, '');
+  v = v.match(/.{1,4}/g)?.join(' ') || v;
+  input.value = v.substring(0, 19);
+}
+
+/* ============================================================
+   CELEBRATION EFFECT
+============================================================ */
+function fireCelebration() {
+  const emojis = ['🏸', '🎉', '⭐', '✨', '🏆', '🥇'];
+  for (let i = 0; i < 20; i++) {
     setTimeout(() => {
-      toast.style.animation = 'toastOut .25s ease forwards'
-      setTimeout(() => toast.remove(), 250)
-    }, duration)
+      const span = document.createElement('span');
+      span.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      span.style.cssText = `
+        position: fixed;
+        font-size: ${Math.random() * 20 + 14}px;
+        left: ${Math.random() * 100}vw;
+        top: -40px;
+        z-index: 9999;
+        pointer-events: none;
+        animation: confettiFall ${Math.random() * 1.5 + 1}s ease-in forwards;
+      `;
+      document.body.appendChild(span);
+      setTimeout(() => span.remove(), 2500);
+    }, i * 80);
   }
+}
 
-  /* ── XP earned popup ─────────────────────────────────────── */
-  function showXPPopup(amount, levelUp = false, newLevel = null) {
-    const popup = document.createElement('div')
-    popup.style.cssText = `
-      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      z-index:9998;text-align:center;pointer-events:none;
-      animation:xpPop .6s ease forwards;
-    `
-    popup.innerHTML = levelUp
-      ? `<div style="font-size:56px;margin-bottom:8px">🎊</div>
-         <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;
-           color:#f0c040">LEVEL UP!</div>
-         <div style="font-size:16px;color:#e2ede4;margin-top:4px">
-           You reached Level ${newLevel}</div>`
-      : `<div style="font-family:'Syne',sans-serif;font-size:48px;font-weight:800;
-           color:#38d25a">+${amount} XP</div>`
-
-    if (!document.getElementById('xp-pop-styles')) {
-      const s = document.createElement('style')
-      s.id = 'xp-pop-styles'
-      s.textContent = `
-        @keyframes xpPop {
-          0%  { opacity:0; transform:translate(-50%,-50%) scale(0.5) }
-          40% { opacity:1; transform:translate(-50%,-60%) scale(1.1) }
-          70% { opacity:1; transform:translate(-50%,-65%) scale(1) }
-          100%{ opacity:0; transform:translate(-50%,-80%) scale(0.9) }
-        }
-      `
-      document.head.appendChild(s)
+// Inject confetti keyframes
+const confettiStyle = document.createElement('style');
+confettiStyle.textContent = `
+  @keyframes confettiFall {
+    to {
+      transform: translateY(110vh) rotate(${Math.random() * 720}deg);
+      opacity: 0;
     }
-
-    document.body.appendChild(popup)
-    setTimeout(() => popup.remove(), 1800)
   }
+`;
+document.head.appendChild(confettiStyle);
 
-  /* ── Streak alert ────────────────────────────────────────── */
-  function showStreakAlert(streak) {
-    showNotification(`🔥 ${streak} day streak! Keep it up!`, 'xp', 5000)
+/* ============================================================
+   KEYBOARD: Close modal on ESC
+============================================================ */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('modalOverlay').classList.remove('active');
+    document.body.style.overflow = '';
   }
+});
 
-  /* ── Premium badge HTML ──────────────────────────────────── */
-  function badgeHTML(plan) {
-    const badges = {
-      premium : `<span style="background:rgba(240,192,64,0.15);border:1px solid rgba(240,192,64,0.4);
-                   color:#f0c040;font-size:9px;letter-spacing:1.5px;padding:3px 8px;
-                   border-radius:4px;font-family:'DM Mono',monospace">⭐ PREMIUM</span>`,
-      school  : `<span style="background:rgba(64,160,240,0.15);border:1px solid rgba(64,160,240,0.4);
-                   color:#40a0f0;font-size:9px;letter-spacing:1.5px;padding:3px 8px;
-                   border-radius:4px;font-family:'DM Mono',monospace">🏫 SCHOOL</span>`,
-      free    : `<span style="background:rgba(56,210,90,0.08);border:1px solid rgba(56,210,90,0.2);
-                   color:#6e9475;font-size:9px;letter-spacing:1.5px;padding:3px 8px;
-                   border-radius:4px;font-family:'DM Mono',monospace">FREE</span>`,
-    }
-    return badges[plan] || badges.free
+/* ============================================================
+   CARD SHINE EFFECT
+============================================================ */
+document.addEventListener('mousemove', (e) => {
+  document.querySelectorAll('.feat-card, .price-card, .testi-card').forEach(card => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+  });
+});
+
+// Add shine CSS dynamically
+const shineStyle = document.createElement('style');
+shineStyle.textContent = `
+  .feat-card, .price-card, .testi-card {
+    background-image: radial-gradient(
+      circle 200px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255,255,255,0.03),
+      transparent 80%
+    );
   }
+`;
+document.head.appendChild(shineStyle);
 
-  /* ── Rank tier from XP ───────────────────────────────────── */
-  function getRankTier(xp) {
-    if (xp >= 8000)  return { name:'Champion', color:'#f0c040', icon:'🏆' }
-    if (xp >= 3500)  return { name:'Elite',    color:'#40a0f0', icon:'💎' }
-    if (xp >= 1200)  return { name:'Gold',     color:'#f0a030', icon:'🥇' }
-    if (xp >= 500)   return { name:'Silver',   color:'#c0c8d0', icon:'🥈' }
-    return                  { name:'Bronze',   color:'#cd7f32', icon:'🥉' }
-  }
+/* ============================================================
+   PRICING CARD TILT
+============================================================ */
+document.querySelectorAll('.price-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `perspective(600px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg) translateY(-8px)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+    card.style.transition = 'transform 0.5s ease';
+    setTimeout(() => { card.style.transition = ''; }, 500);
+  });
+});
 
-  /* ── Public API ──────────────────────────────────────────── */
-  return {
-    PLANS,
-    PREMIUM_FEATURES,
-    isCreator,
-    hasPremium,
-    canAccess,
-    sessionsRemaining,
-    showUpgradeModal,
-    closeUpgradeModal,
-    toggleBilling,
-    simulatePayment,
-    lockElement,
-    showNotification,
-    showXPPopup,
-    showStreakAlert,
-    badgeHTML,
-    getRankTier,
-  }
-
-})()
-
-window.PREMIUM = PREMIUM
-export default PREMIUM
+/* ============================================================
+   INIT
+============================================================ */
+console.log('%c🏸 Shuttlestepz Premium loaded', 'color:#00d4ff;font-size:14px;font-weight:bold;');
