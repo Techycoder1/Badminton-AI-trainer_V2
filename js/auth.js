@@ -10,7 +10,7 @@
    ============================================================ */
 
 import DB from './database.js'
-import PREMIUM from './premium.js'
+const PREMIUM = window.PREMIUM || (await import('./premium.js')).PREMIUM
 
 /* ── Creator emails ──────────────────────────────────────────── */
 const CREATOR_EMAILS = [
