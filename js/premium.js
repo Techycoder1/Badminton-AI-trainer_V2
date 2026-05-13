@@ -537,4 +537,3 @@ document.querySelectorAll('.price-card').forEach(card => {
    INIT
 ============================================================ */
 console.log('%c🏸 Shuttlestepz Premium loaded', 'color:#00d4ff;font-size:14px;font-weight:bold;');
-export default PREMIUM
