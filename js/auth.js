@@ -40,7 +40,14 @@ const FREE_LIMIT = 5
 
 /* ── Firebase auth state → populate cache ────────────────────── */
 DB.onAuthReady(async (fbUser) => {
-  if (!fbUser) { clearCache(); return }
+  if (!fbUser) {
+    clearCache()
+    // FIX: Dispatch ssz-no-user so pages like premium.html know Firebase
+    // confirmed "no user" immediately, instead of waiting for the 6s timeout
+    // and then incorrectly redirecting to login.html.
+    window.dispatchEvent(new CustomEvent('ssz-no-user'))
+    return
+  }
   try {
     const p   = await DB.getUserProfile(fbUser.uid)
     const lvl = calcLevelInfo(p.xp || 0)
@@ -129,37 +136,49 @@ const AUTH = {
       const cached = getCache()
       if (cached) { resolve(cached); return }
 
-      // Wait for ssz-user-ready or a confirmed "no user" state
       let resolved = false
 
-      // Listen for successful auth population
       const onReady = (e) => {
         if (resolved) return
         resolved = true
         window.removeEventListener('ssz-user-ready', onReady)
+        window.removeEventListener('ssz-no-user',    onNone)
+        clearTimeout(timer)
         resolve(e.detail)
       }
+
+      const onNone = () => {
+        if (resolved) return
+        resolved = true
+        window.removeEventListener('ssz-user-ready', onReady)
+        window.removeEventListener('ssz-no-user',    onNone)
+        clearTimeout(timer)
+        window.location.href = redirect
+        resolve(null)
+      }
+
       window.addEventListener('ssz-user-ready', onReady)
+      window.addEventListener('ssz-no-user',    onNone)
 
       // Also poll the cache directly every 100ms as a fallback
-      // (covers cases where the event was fired before this listener attached)
       const poll = setInterval(() => {
         const u = getCache()
         if (u && !resolved) {
           resolved = true
           clearInterval(poll)
           window.removeEventListener('ssz-user-ready', onReady)
+          window.removeEventListener('ssz-no-user',    onNone)
           resolve(u)
         }
       }, 100)
 
       // Timeout: if nothing after 4s, user is genuinely not logged in
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (!resolved) {
           resolved = true
           clearInterval(poll)
           window.removeEventListener('ssz-user-ready', onReady)
-          // Only redirect if still no cache
+          window.removeEventListener('ssz-no-user',    onNone)
           if (!getCache()) {
             window.location.href = redirect
             resolve(null)
@@ -172,15 +191,12 @@ const AUTH = {
   },
 
   requireGuest(redirect = 'dashboard.html') {
-    // Check cache immediately
     if (getCache()) { window.location.href = redirect; return }
-    // Also redirect once auth fires, in case cache was empty on load
     const onReady = () => {
       window.removeEventListener('ssz-user-ready', onReady)
       window.location.href = redirect
     }
     window.addEventListener('ssz-user-ready', onReady)
-    // Cancel listener after 3s if still no user (they're a genuine guest)
     setTimeout(() => window.removeEventListener('ssz-user-ready', onReady), 3000)
   },
 
