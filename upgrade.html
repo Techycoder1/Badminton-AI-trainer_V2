@@ -5,170 +5,698 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Upgrade — Shuttlestepz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS — exact match to your codebase
+═══════════════════════════════════════════════════════ */
 :root {
-  --bg:#090c0e;--bg2:#0f1315;--bg3:#161b1e;--bg4:#1d2427;
-  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);
-  --accent:#39e07a;--adim:rgba(57,224,122,.12);--aglow:rgba(57,224,122,.3);
-  --text:#eaf0eb;--text2:#7a9080;--text3:#3d4f44;
-  --r:12px;--rl:18px;--rx:24px;--tr:.18s cubic-bezier(.4,0,.2,1);
+  --bg:     #090c0e;
+  --bg2:    #0f1315;
+  --bg3:    #161b1e;
+  --bg4:    #1d2427;
+  --border: rgba(255,255,255,.06);
+  --border2:rgba(255,255,255,.11);
+  --accent: #39e07a;
+  --adim:   rgba(57,224,122,.12);
+  --aglow:  rgba(57,224,122,.3);
+  --a2:     #60eba0;
+  --blue:   #60b4ff;
+  --amber:  #f5a623;
+  --red:    #e05c5c;
+  --text:   #eaf0eb;
+  --text2:  #7a9080;
+  --text3:  #3d4f44;
+  --r:      12px;
+  --rl:     18px;
+  --rx:     24px;
+  --tr:     .18s cubic-bezier(.4,0,.2,1);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-@keyframes _spin{to{transform:rotate(360deg)}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── LOADING ── */
-#auth-loading{position:fixed;inset:0;z-index:9999;background:var(--bg);
-  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .3s}
-#auth-loading.done{opacity:0;pointer-events:none}
-.spinner{width:36px;height:36px;border-radius:50%;border:3px solid var(--bg3);
-  border-top-color:var(--accent);animation:_spin .7s linear infinite;box-shadow:0 0 12px var(--aglow)}
-.loading-txt{font-size:12px;color:var(--text2);font-weight:500}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+html,body { min-height:100%; font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased }
 
-/* ── BG ── */
-.bg-noise{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.028;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px}
-.bg-radial{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(57,224,122,.07) 0%,transparent 60%),
-             radial-gradient(ellipse 50% 40% at 85% 85%,rgba(96,180,255,.04) 0%,transparent 55%)}
+/* ── keyframes ── */
+@keyframes _spin    { to { transform:rotate(360deg) } }
+@keyframes fadeUp   { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+@keyframes pulse    { 0%,100% { opacity:1; transform:scale(1) } 50% { opacity:.4; transform:scale(.7) } }
+@keyframes shimmer  { from { background-position:-400px 0 } to { background-position:400px 0 } }
+@keyframes glow     { 0%,100% { box-shadow:0 0 20px var(--aglow) } 50% { box-shadow:0 0 40px var(--aglow),0 0 60px rgba(57,224,122,.15) } }
 
-/* ── TOPBAR ── */
-.topbar{position:fixed;top:0;left:0;right:0;height:60px;z-index:100;
-  background:rgba(9,12,14,.9);backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px}
-.topbar-brand{display:flex;align-items:center;gap:9px;text-decoration:none;
-  color:var(--text);font-size:15px;font-weight:800;letter-spacing:-.4px}
-.topbar-back{margin-left:auto;display:flex;align-items:center;gap:6px;
-  background:var(--bg3);border:1px solid var(--border);border-radius:9px;
-  padding:7px 14px;font-size:12.5px;font-weight:600;color:var(--text2);
-  text-decoration:none;transition:all var(--tr)}
-.topbar-back:hover{border-color:var(--border2);color:var(--text)}
+/* ═══════════════════════════════════════════════════════
+   LOADING SCREEN — exact from your codebase
+═══════════════════════════════════════════════════════ */
+#auth-loading {
+  position:fixed; inset:0; z-index:9999; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:16px; transition:opacity .35s
+}
+#auth-loading.done { opacity:0; pointer-events:none }
+.spinner {
+  width:36px; height:36px; border-radius:50%;
+  border:3px solid var(--bg3); border-top-color:var(--accent);
+  animation:_spin .7s linear infinite;
+  box-shadow:0 0 12px var(--aglow)
+}
+.loading-txt { font-size:12px; color:var(--text2); font-weight:500 }
 
-/* ── PAGE ── */
-.page{position:relative;z-index:1;padding:100px 24px 80px;max-width:960px;margin:0 auto;visibility:hidden}
-.page.ready{visibility:visible}
-.page-eyebrow{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  color:var(--accent);margin-bottom:12px;text-align:center}
-.page-title{font-size:36px;font-weight:900;letter-spacing:-1px;text-align:center;line-height:1.15;margin-bottom:10px}
-.page-title span{color:var(--accent)}
-.page-sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:48px;line-height:1.6}
-.au{animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both}
-.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}
+/* ═══════════════════════════════════════════════════════
+   BG — exact from your codebase
+═══════════════════════════════════════════════════════ */
+.bg-noise {
+  position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.028;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px
+}
+.bg-radial {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 10%, rgba(57,224,122,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, rgba(96,180,255,.04) 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(57,224,122,.025) 0%, transparent 65%)
+}
 
-/* ── CURRENT PLAN ── */
-.cp-banner{background:rgba(57,224,122,.08);border:1px solid rgba(57,224,122,.2);
-  border-radius:var(--rl);padding:16px 20px;display:none;align-items:center;gap:14px;margin-bottom:32px}
-.cp-banner.show{display:flex}
-.cp-icon{font-size:22px}.cp-info{flex:1}
-.cp-title{font-size:14px;font-weight:700;color:var(--text)}
-.cp-sub{font-size:12px;color:var(--text2);margin-top:2px}
-.cp-badge{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
-  color:var(--accent);background:var(--adim);border-radius:20px;padding:4px 12px}
+/* ═══════════════════════════════════════════════════════
+   TOPBAR — exact from your codebase
+═══════════════════════════════════════════════════════ */
+.topbar {
+  position:fixed; top:0; left:0; right:0; height:60px; z-index:100;
+  background:rgba(9,12,14,.9); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 24px; gap:12px
+}
+.topbar-brand {
+  display:flex; align-items:center; gap:9px; text-decoration:none;
+  color:var(--text); font-size:15px; font-weight:800; letter-spacing:-.4px
+}
+.topbar-label {
+  font-size:13px; color:var(--text3); font-weight:500; letter-spacing:-.1px
+}
+.topbar-xp {
+  display:flex; align-items:center; gap:6px;
+  background:var(--adim); border:1px solid rgba(57,224,122,.2);
+  border-radius:20px; padding:5px 12px;
+  font-size:12px; font-weight:700; color:var(--accent)
+}
+.topbar-xp-dot {
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  box-shadow:0 0 6px var(--accent); animation:pulse 2s infinite
+}
+.topbar-back {
+  margin-left:auto; display:flex; align-items:center; gap:6px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:9px;
+  padding:7px 14px; font-size:12.5px; font-weight:600; color:var(--text2);
+  text-decoration:none; transition:all var(--tr)
+}
+.topbar-back:hover { border-color:var(--border2); color:var(--text) }
 
-/* ── NOTICE ── */
-.notice{display:none;align-items:center;justify-content:space-between;
-  background:rgba(57,224,122,.1);border:1px solid rgba(57,224,122,.22);
-  border-radius:var(--r);padding:11px 16px;margin-bottom:24px;font-size:13px;color:var(--accent);font-weight:500}
-.notice.show{display:flex}
-.notice.err{background:rgba(224,92,92,.1);border-color:rgba(224,92,92,.22);color:#e05c5c}
-.notice button{background:none;border:none;color:inherit;cursor:pointer;font-size:16px;opacity:.6}
+/* ═══════════════════════════════════════════════════════
+   PAGE WRAPPER
+═══════════════════════════════════════════════════════ */
+.page {
+  position:relative; z-index:1;
+  padding:88px 24px 96px;
+  max-width:1000px; margin:0 auto;
+  /* always visible — no auth gate */
+}
+.page.ready { /* no-op */ }
 
-/* ── PLANS GRID ── */
-.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-bottom:40px}
-.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rx);
-  padding:28px 24px;position:relative;overflow:hidden;
-  transition:border-color var(--tr),transform var(--tr),box-shadow var(--tr);display:flex;flex-direction:column}
-.plan-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(0,0,0,.35)}
-.plan-card.popular{border-color:rgba(57,224,122,.3)}
-.plan-glow{position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;pointer-events:none;opacity:.6}
-.popular-badge{position:absolute;top:16px;right:16px;font-size:9px;font-weight:700;
-  letter-spacing:.8px;text-transform:uppercase;background:var(--accent);color:#060a07;border-radius:6px;padding:3px 8px}
-.plan-icon{font-size:28px;margin-bottom:12px}
-.plan-name{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.3px}
-.plan-role{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:16px}
-.plan-price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
-.plan-price{font-size:36px;font-weight:900;letter-spacing:-1.5px}
-.plan-period{font-size:13px;color:var(--text2);font-weight:500}
-.plan-desc{font-size:12.5px;color:var(--text2);margin-bottom:20px;line-height:1.55}
-.plan-features{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;flex:1}
-.plan-feat{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--text2);line-height:1.4}
-.plan-feat svg{flex-shrink:0;margin-top:2px}
-.btn-up{width:100%;padding:13px;border:none;border-radius:10px;
-  font-family:'Sora',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;
-  transition:all var(--tr);display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-up:hover{transform:translateY(-1px)}
-.btn-up:disabled{opacity:.6;cursor:not-allowed;transform:none}
+/* Animations — same class names as your codebase */
+.au  { animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both }
+.d1  { animation-delay:.08s }
+.d2  { animation-delay:.16s }
+.d3  { animation-delay:.24s }
+.d4  { animation-delay:.32s }
 
-/* ── MODAL ── */
-.modal-bd{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);
-  display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
-.modal-bd.open{display:flex}
-.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rx);
-  padding:32px;max-width:400px;width:90%;text-align:center}
-.m-icon{font-size:40px;margin-bottom:12px}
-.m-title{font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px}
-.m-sub{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6}
-.m-badge{display:inline-block;padding:6px 20px;border-radius:20px;font-size:14px;font-weight:700;margin-bottom:18px}
-.m-note{font-size:11.5px;color:var(--text2);background:var(--bg3);border-radius:8px;
-  padding:12px 14px;line-height:1.7;margin-bottom:22px;text-align:left}
-.m-note strong{color:var(--text)}
-.m-actions{display:flex;gap:10px}
-.m-confirm{flex:1;padding:13px;border:none;border-radius:10px;
-  font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all var(--tr)}
-.m-cancel{flex:1;padding:13px;background:transparent;border:1px solid var(--border2);border-radius:10px;
-  font-family:'Sora',sans-serif;font-size:14px;font-weight:600;color:var(--text2);
-  cursor:pointer;transition:all var(--tr)}
-.m-cancel:hover{color:var(--text);background:var(--bg3)}
+/* ── Notice ── */
+.notice {
+  display:none; align-items:center; justify-content:space-between;
+  background:rgba(57,224,122,.1); border:1px solid rgba(57,224,122,.22);
+  border-radius:var(--r); padding:11px 16px; margin-bottom:24px;
+  font-size:13px; color:var(--accent); font-weight:500
+}
+.notice.show  { display:flex }
+.notice.err   { background:rgba(224,92,92,.1); border-color:rgba(224,92,92,.22); color:var(--red) }
+.notice button { background:none; border:none; color:inherit; cursor:pointer; font-size:16px; opacity:.6 }
 
-/* ── FAQ ── */
-.faq-title{font-size:18px;font-weight:800;letter-spacing:-.4px;text-align:center;margin-bottom:20px}
-.faq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:48px}
-.faq-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
-.faq-q{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
-.faq-a{font-size:12px;color:var(--text2);line-height:1.6}
+/* ── Current plan banner — same as upgrade.html ── */
+.cp-banner {
+  background:rgba(57,224,122,.08); border:1px solid rgba(57,224,122,.2);
+  border-radius:var(--rl); padding:16px 20px;
+  display:none; align-items:center; gap:14px; margin-bottom:32px
+}
+.cp-banner.show { display:flex }
+.cp-icon { font-size:22px }
+.cp-info { flex:1 }
+.cp-title { font-size:14px; font-weight:700; color:var(--text) }
+.cp-sub   { font-size:12px; color:var(--text2); margin-top:2px }
+.cp-badge {
+  font-size:10px; font-weight:700; letter-spacing:.7px; text-transform:uppercase;
+  color:var(--accent); background:var(--adim); border-radius:20px; padding:4px 12px
+}
 
-@media(max-width:600px){
-  .page{padding:80px 14px 60px}
-  .page-title{font-size:26px}
-  .plans-grid{grid-template-columns:1fr}
-  .m-actions{flex-direction:column}
+/* ── Page header ── */
+.page-eyebrow {
+  font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  color:var(--accent); margin-bottom:12px; text-align:center
+}
+.page-title {
+  font-size:clamp(28px,5vw,42px); font-weight:900; letter-spacing:-1.5px;
+  text-align:center; line-height:1.1; margin-bottom:10px
+}
+.page-title span { color:var(--accent) }
+.page-sub {
+  font-size:14px; color:var(--text2); text-align:center;
+  margin-bottom:40px; line-height:1.6; max-width:480px; margin-left:auto; margin-right:auto
+}
+
+/* ═══════════════════════════════════════════════════════
+   BILLING TOGGLE
+═══════════════════════════════════════════════════════ */
+.billing-row {
+  display:flex; align-items:center; justify-content:center;
+  gap:12px; margin-bottom:36px
+}
+.billing-lbl {
+  font-size:12.5px; font-weight:600; color:var(--text3);
+  transition:color var(--tr)
+}
+.billing-lbl.on { color:var(--text) }
+.save-pill {
+  font-size:9.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+  color:var(--accent); background:var(--adim);
+  border:1px solid rgba(57,224,122,.25); border-radius:20px; padding:3px 9px
+}
+/* Toggle switch — same style as your checkboxes */
+.tog-wrap { position:relative; width:44px; height:24px; cursor:pointer }
+.tog-wrap input { opacity:0; width:0; height:0; position:absolute }
+.tog-track {
+  position:absolute; inset:0; border-radius:100px;
+  background:var(--bg3); border:1px solid var(--border2); transition:all var(--tr)
+}
+.tog-track::after {
+  content:''; position:absolute; width:16px; height:16px;
+  top:3px; left:3px; background:var(--text2); border-radius:50%;
+  transition:transform var(--tr), background var(--tr)
+}
+.tog-wrap input:checked + .tog-track { background:var(--accent); border-color:var(--accent) }
+.tog-wrap input:checked + .tog-track::after { transform:translateX(20px); background:#060a07 }
+
+/* ═══════════════════════════════════════════════════════
+   PLAN CARDS — same structure as your upgrade.html
+═══════════════════════════════════════════════════════ */
+.plans-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(270px,1fr));
+  gap:16px; margin-bottom:48px
+}
+.plan-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--rx);
+  padding:28px 24px; position:relative; overflow:hidden;
+  transition:border-color var(--tr), transform var(--tr), box-shadow var(--tr);
+  display:flex; flex-direction:column
+}
+.plan-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 20px 60px rgba(0,0,0,.4)
+}
+.plan-card.popular {
+  border-color:rgba(57,224,122,.25);
+  box-shadow:0 0 0 1px rgba(57,224,122,.08)
+}
+.plan-card.popular::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent)
+}
+
+/* Glow orb — same as your plan-glow */
+.plan-glow {
+  position:absolute; top:-50px; right:-50px;
+  width:180px; height:180px; border-radius:50%;
+  pointer-events:none; opacity:.55
+}
+
+/* Popular badge — same style */
+.popular-badge {
+  position:absolute; top:16px; right:16px;
+  font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+  background:var(--accent); color:#060a07; border-radius:6px; padding:3px 8px
+}
+.coach-badge {
+  position:absolute; top:16px; right:16px;
+  font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+  background:rgba(96,180,255,.15); color:var(--blue);
+  border:1px solid rgba(96,180,255,.3); border-radius:6px; padding:3px 8px
+}
+.school-badge {
+  position:absolute; top:16px; right:16px;
+  font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+  background:rgba(245,166,35,.12); color:var(--amber);
+  border:1px solid rgba(245,166,35,.28); border-radius:6px; padding:3px 8px
+}
+
+.plan-icon { font-size:28px; margin-bottom:12px }
+.plan-name {
+  font-size:18px; font-weight:800; color:var(--text);
+  margin-bottom:3px; letter-spacing:-.4px
+}
+.plan-role {
+  font-size:11px; font-weight:600; letter-spacing:.6px;
+  text-transform:uppercase; margin-bottom:18px
+}
+.plan-price-row {
+  display:flex; align-items:baseline; gap:4px; margin-bottom:4px
+}
+.plan-price    { font-size:38px; font-weight:900; letter-spacing:-2px; line-height:1 }
+.plan-period   { font-size:13px; color:var(--text2); font-weight:500 }
+.plan-annual   {
+  font-size:11.5px; color:var(--accent); margin-bottom:16px;
+  min-height:18px; font-weight:500
+}
+.plan-desc {
+  font-size:12.5px; color:var(--text2); margin-bottom:22px; line-height:1.6; flex:0
+}
+
+/* Feature list — same .plan-feat pattern */
+.plan-features {
+  display:flex; flex-direction:column; gap:9px; margin-bottom:26px; flex:1
+}
+.plan-feat {
+  display:flex; align-items:flex-start; gap:9px;
+  font-size:12.5px; color:var(--text2); line-height:1.4
+}
+.plan-feat svg  { flex-shrink:0; margin-top:1px }
+.plan-feat.dim  { color:var(--text3) }
+.plan-feat.dim svg { opacity:.4 }
+
+/* CTA button — same .btn-up from your codebase */
+.btn-up {
+  width:100%; padding:13px; border:none; border-radius:10px;
+  font-family:'Sora',sans-serif; font-size:13.5px; font-weight:700;
+  cursor:pointer; transition:all var(--tr);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  letter-spacing:-.1px
+}
+.btn-up:hover   { transform:translateY(-1px) }
+.btn-up:disabled{ opacity:.55; cursor:not-allowed; transform:none }
+.btn-up.ghost {
+  background:transparent; color:var(--text2);
+  border:1px solid var(--border2)
+}
+.btn-up.ghost:hover { color:var(--text); border-color:rgba(255,255,255,.2); background:var(--bg3) }
+.btn-up.current {
+  background:var(--adim); color:var(--accent);
+  border:1px solid rgba(57,224,122,.25); cursor:default
+}
+.btn-up.current:hover { transform:none }
+
+/* ═══════════════════════════════════════════════════════
+   COMPARE SECTION
+═══════════════════════════════════════════════════════ */
+.compare-wrap {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--rl); overflow:hidden; margin-bottom:48px
+}
+.compare-head {
+  font-size:16px; font-weight:800; letter-spacing:-.4px;
+  color:var(--text); padding:20px 24px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px
+}
+table.ct { width:100%; border-collapse:collapse }
+table.ct thead th {
+  padding:10px 16px; text-align:left;
+  font-family:'DM Mono',monospace;
+  font-size:9.5px; font-weight:500; letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--text3);
+  background:var(--bg3); border-bottom:1px solid var(--border)
+}
+table.ct thead th:first-child { width:40%; color:var(--text2) }
+table.ct thead th.col-hi      { color:var(--accent) }
+table.ct tbody td {
+  padding:10px 16px; font-size:12.5px;
+  border-bottom:1px solid var(--border)
+}
+table.ct tbody tr:last-child td { border-bottom:none }
+table.ct tbody tr:hover td      { background:rgba(255,255,255,.015) }
+table.ct .feat-name { color:var(--text); font-weight:500 }
+table.ct .free-col  { color:var(--text3); font-family:'DM Mono',monospace; font-size:11.5px }
+table.ct .prem-col  { color:var(--accent); font-weight:600 }
+table.ct .check { color:var(--accent); font-size:13px }
+table.ct .cross { color:var(--text3); font-size:13px }
+
+/* ═══════════════════════════════════════════════════════
+   TESTIMONIALS
+═══════════════════════════════════════════════════════ */
+.testi-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(270px,1fr));
+  gap:12px; margin-bottom:48px
+}
+.testi-card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--rl); padding:20px 20px 18px;
+  transition:border-color var(--tr), transform var(--tr)
+}
+.testi-card:hover { border-color:var(--border2); transform:translateY(-2px) }
+.testi-stars      { color:var(--accent); font-size:11px; letter-spacing:2px; margin-bottom:10px }
+.testi-quote {
+  font-size:13px; color:var(--text2); line-height:1.65;
+  margin-bottom:16px; font-style:italic
+}
+.testi-author { display:flex; align-items:center; gap:10px; margin-bottom:10px }
+.testi-av {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--bg3); border:1px solid var(--border2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:var(--text); flex-shrink:0;
+  font-family:'DM Mono',monospace
+}
+.testi-name { font-size:12.5px; font-weight:700; color:var(--text) }
+.testi-role { font-size:11px; color:var(--text3) }
+.testi-plan {
+  display:inline-block; padding:2px 8px; border-radius:5px;
+  font-family:'DM Mono',monospace; font-size:9px; font-weight:500;
+  letter-spacing:.6px; text-transform:uppercase;
+  background:var(--bg3); color:var(--text3); border:1px solid var(--border)
+}
+
+/* ═══════════════════════════════════════════════════════
+   FAQ — same pattern as your codebase
+═══════════════════════════════════════════════════════ */
+.faq-head {
+  font-size:18px; font-weight:800; letter-spacing:-.4px;
+  text-align:center; margin-bottom:20px; color:var(--text)
+}
+.faq-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
+  gap:10px; margin-bottom:56px
+}
+.faq-item {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--r); padding:16px 18px;
+  transition:border-color var(--tr)
+}
+.faq-item:hover { border-color:var(--border2) }
+.faq-q { font-size:13px; font-weight:700; color:var(--text); margin-bottom:6px }
+.faq-a { font-size:12px; color:var(--text2); line-height:1.65 }
+
+/* ═══════════════════════════════════════════════════════
+   FINAL CTA BANNER
+═══════════════════════════════════════════════════════ */
+.cta-banner {
+  background:var(--bg2); border:1px solid rgba(57,224,122,.2);
+  border-radius:var(--rx); padding:40px 36px;
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:32px; flex-wrap:wrap; margin-bottom:56px
+}
+.cta-banner::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent)
+}
+.cta-glow {
+  position:absolute; top:-80px; left:-80px;
+  width:320px; height:320px; border-radius:50%;
+  background:radial-gradient(circle, rgba(57,224,122,.09), transparent 65%);
+  pointer-events:none
+}
+.cta-left { position:relative; max-width:440px }
+.cta-eyebrow {
+  font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+  letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--accent); margin-bottom:10px
+}
+.cta-title {
+  font-size:clamp(22px,3.5vw,32px); font-weight:900;
+  letter-spacing:-1px; color:var(--text); line-height:1.15; margin-bottom:8px
+}
+.cta-sub { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:20px }
+.trust-row {
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap
+}
+.trust-item {
+  font-family:'DM Mono',monospace; font-size:10.5px; color:var(--text3);
+  display:flex; align-items:center; gap:5px
+}
+.cta-right {
+  position:relative; display:flex; flex-direction:column;
+  align-items:stretch; gap:10px; min-width:200px
+}
+
+/* ═══════════════════════════════════════════════════════
+   LEADERBOARD PREVIEW
+═══════════════════════════════════════════════════════ */
+.lb-preview {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--rl); overflow:hidden; margin-bottom:48px
+}
+.lb-preview-head {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-bottom:1px solid var(--border);
+  background:var(--bg3)
+}
+.lb-preview-title {
+  font-family:'DM Mono',monospace; font-size:9.5px;
+  letter-spacing:1.5px; text-transform:uppercase; color:var(--text2); font-weight:500
+}
+.lb-live {
+  display:flex; align-items:center; gap:5px;
+  font-family:'DM Mono',monospace; font-size:9.5px;
+  letter-spacing:1px; text-transform:uppercase; color:var(--accent); font-weight:500
+}
+.lb-live-dot {
+  width:6px; height:6px; border-radius:50%; background:var(--accent);
+  box-shadow:0 0 5px var(--accent); animation:pulse 1.8s infinite
+}
+.lb-row {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 18px; border-bottom:1px solid var(--border);
+  transition:background var(--tr)
+}
+.lb-row:last-child { border-bottom:none }
+.lb-row:hover      { background:rgba(255,255,255,.015) }
+.lb-row.you-row    { background:rgba(57,224,122,.04) }
+.lb-pos {
+  font-size:14px; width:26px; text-align:center;
+  font-weight:800; flex-shrink:0
+}
+.lb-av {
+  width:32px; height:32px; border-radius:50%;
+  background:var(--bg3); border:1px solid var(--border2);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'DM Mono',monospace; font-size:10px;
+  font-weight:500; color:var(--text); flex-shrink:0
+}
+.lb-name  { flex:1; font-size:13px; font-weight:600; color:var(--text) }
+.lb-bar-wrap { width:80px; height:4px; background:var(--bg4); border-radius:99px; overflow:hidden }
+.lb-bar   { height:100%; border-radius:99px; background:var(--accent); transition:width 1.2s ease }
+.lb-xp    {
+  font-family:'DM Mono',monospace; font-size:11px;
+  font-weight:500; color:var(--text2); min-width:72px; text-align:right
+}
+
+/* ── section divider label ── */
+.sec-label {
+  font-family:'DM Mono',monospace; font-size:9.5px; font-weight:500;
+  letter-spacing:1.2px; text-transform:uppercase; color:var(--text3);
+  text-align:center; margin-bottom:20px
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODAL — same structure as your upgrade.html
+═══════════════════════════════════════════════════════ */
+.modal-bd {
+  position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.75);
+  display:none; align-items:center; justify-content:center;
+  backdrop-filter:blur(8px); padding:16px
+}
+.modal-bd.open { display:flex }
+.modal-box {
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:var(--rx); padding:32px;
+  max-width:400px; width:100%; text-align:center;
+  animation:fadeUp .25s cubic-bezier(.4,0,.2,1) both
+}
+.m-icon  { font-size:40px; margin-bottom:12px }
+.m-title { font-size:20px; font-weight:800; color:var(--text); margin-bottom:6px }
+.m-sub   { font-size:13px; color:var(--text2); margin-bottom:18px; line-height:1.6 }
+.m-badge {
+  display:inline-block; padding:6px 20px; border-radius:20px;
+  font-size:14px; font-weight:700; margin-bottom:18px
+}
+.m-note {
+  font-size:11.5px; color:var(--text2); background:var(--bg3);
+  border-radius:8px; padding:12px 14px; line-height:1.7;
+  margin-bottom:22px; text-align:left
+}
+.m-note strong { color:var(--text) }
+.m-actions { display:flex; gap:10px }
+.m-confirm {
+  flex:1; padding:13px; border:none; border-radius:10px;
+  font-family:'Sora',sans-serif; font-size:14px; font-weight:700;
+  cursor:pointer; transition:all var(--tr)
+}
+.m-confirm:hover   { transform:translateY(-1px) }
+.m-confirm:disabled{ opacity:.6; cursor:not-allowed; transform:none }
+.m-cancel {
+  flex:1; padding:13px; background:transparent;
+  border:1px solid var(--border2); border-radius:10px;
+  font-family:'Sora',sans-serif; font-size:14px; font-weight:600;
+  color:var(--text2); cursor:pointer; transition:all var(--tr)
+}
+.m-cancel:hover { color:var(--text); background:var(--bg3) }
+
+/* Step 2 — payment inputs */
+.m-step { display:flex; flex-direction:column }
+.m-step.hidden { display:none }
+.m-input {
+  width:100%; background:var(--bg3); border:1px solid var(--border);
+  color:var(--text); padding:10px 13px; border-radius:9px;
+  font-family:'Sora',sans-serif; font-size:13px;
+  outline:none; transition:border-color var(--tr); margin-bottom:10px
+}
+.m-input:focus { border-color:rgba(57,224,122,.4) }
+.m-input::placeholder { color:var(--text3) }
+.m-input-row { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.m-input-row .m-input { margin-bottom:0 }
+.m-secure {
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  font-size:11px; color:var(--text3); margin-top:10px
+}
+
+/* Step 3 — success */
+.success-ring {
+  width:68px; height:68px; border-radius:50%;
+  border:2px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  margin:8px auto 18px;
+  box-shadow:0 0 24px var(--aglow); animation:glow 2s ease-in-out infinite
+}
+.ck-svg   { width:30px; height:30px }
+.ck-circ  { stroke-dasharray:166; stroke-dashoffset:166; stroke:var(--accent); stroke-width:2; animation:draw .55s ease forwards }
+.ck-check { stroke-dasharray:48; stroke-dashoffset:48; stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; animation:draw .38s ease .48s forwards }
+@keyframes draw { to { stroke-dashoffset:0 } }
+.perk-list { display:flex; flex-direction:column; gap:7px; margin:14px 0 20px; text-align:left }
+.perk-row {
+  display:flex; align-items:center; gap:9px;
+  background:var(--bg3); border:1px solid var(--border);
+  padding:8px 13px; border-radius:8px;
+  font-size:12.5px; color:var(--text2)
+}
+.perk-row .ck { color:var(--accent); font-weight:700 }
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════ */
+@media(max-width:680px){
+  .page          { padding:80px 16px 72px }
+  .page-title    { font-size:26px }
+  .plans-grid    { grid-template-columns:1fr }
+  .cta-banner    { padding:28px 22px }
+  .cta-right     { width:100% }
+  .m-actions     { flex-direction:column }
+  .m-input-row   { grid-template-columns:1fr }
+  .lb-bar-wrap   { display:none }
+}
+@media(max-width:420px){
+  .testi-grid    { grid-template-columns:1fr }
+  .topbar-xp     { display:none }
 }
 </style>
 </head>
 <body>
 
-<div id="auth-loading"><div class="spinner"></div><div class="loading-txt">Checking your session…</div></div>
+<!-- auth-loading removed: upgrade page is public -->
+<div id="auth-loading" style="display:none"></div>
+
+<!-- ══ BG ══ -->
 <div class="bg-noise"></div>
 <div class="bg-radial"></div>
 
+<!-- ══ TOPBAR — exact from codebase ══ -->
 <header class="topbar">
   <a href="index.html" class="topbar-brand">
-    <svg width="24" height="24" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/><circle cx="17" cy="7" r="3" fill="#39e07a"/><path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/><path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/><line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/></svg>
+    <svg width="24" height="24" viewBox="0 0 34 34" fill="none">
+      <circle cx="17" cy="17" r="15" stroke="#39e07a" stroke-width="1.5"/>
+      <circle cx="17" cy="7" r="3" fill="#39e07a"/>
+      <path d="M17 7 C11 12 9 17 11 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M17 7 C23 12 25 17 23 23" stroke="#39e07a" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="17" y1="23" x2="17" y2="31" stroke="#39e07a" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
     Shuttlestepz
   </a>
-  <a href="dashboard.html" class="topbar-back">← Back to Dashboard</a>
+  <span class="topbar-label">/ Upgrade</span>
+  <div class="topbar-xp" id="topbar-xp" style="margin-left:auto">
+    <span class="topbar-xp-dot"></span>
+    <span id="xp-val">0 XP</span>
+  </div>
+  <a href="dashboard.html" class="topbar-back">← Dashboard</a>
 </header>
 
-<!-- PAYMENT MODAL -->
+<!-- ══ PAYMENT MODAL ══ -->
 <div class="modal-bd" id="pay-modal">
   <div class="modal-box">
-    <div class="m-icon" id="m-icon">🏸</div>
-    <div class="m-title" id="m-title">Confirm Upgrade</div>
-    <div class="m-sub" id="m-sub">Activate your new plan instantly.</div>
-    <div class="m-badge" id="m-badge">₹199 / month</div>
-    <div class="m-note">
-      🧪 <strong>Simulation Mode</strong> — No real payment is processed right now.<br>
-      Razorpay integration coming soon. Your plan activates immediately.
+
+    <!-- Step 1: Confirm -->
+    <div class="m-step" id="m-s1">
+      <div class="m-icon" id="m-icon">🏸</div>
+      <div class="m-title" id="m-title">Confirm Upgrade</div>
+      <div class="m-sub"   id="m-sub">Activate your new plan instantly.</div>
+      <div class="m-badge" id="m-badge">₹199 / month</div>
+      <div class="m-note">
+        🧪 <strong>Simulation Mode</strong> — No real payment is processed.<br>
+        Razorpay integration coming soon. Plan activates immediately.
+      </div>
+      <div class="m-actions">
+        <button class="m-cancel"  onclick="closeModal()">Cancel</button>
+        <button class="m-confirm" id="m-confirm-1" onclick="goStep2()">Continue →</button>
+      </div>
     </div>
-    <div class="m-actions">
-      <button class="m-cancel" onclick="closeModal()">Cancel</button>
-      <button class="m-confirm" id="m-confirm" onclick="confirmUpgrade()">⚡ Activate Plan</button>
+
+    <!-- Step 2: "Payment" -->
+    <div class="m-step hidden" id="m-s2">
+      <div class="m-icon">💳</div>
+      <div class="m-title">Payment Details</div>
+      <div class="m-sub">Razorpay · Secure checkout</div>
+      <input class="m-input" type="text" placeholder="Card number" maxlength="19" oninput="fmtCard(this)"/>
+      <div class="m-input-row" style="margin-bottom:10px">
+        <input class="m-input" type="text" placeholder="MM / YY" maxlength="5" style="margin-bottom:0"/>
+        <input class="m-input" type="text" placeholder="CVV" maxlength="3" style="margin-bottom:0"/>
+      </div>
+      <input class="m-input" type="text" placeholder="Name on card"/>
+      <div class="m-actions">
+        <button class="m-cancel"  onclick="goStep1()">← Back</button>
+        <button class="m-confirm" id="m-confirm-2" onclick="confirmUpgrade()">⚡ Activate Plan</button>
+      </div>
+      <div class="m-secure">🔒 256-bit SSL · Card not charged for 7 days</div>
     </div>
+
+    <!-- Step 3: Success -->
+    <div class="m-step hidden" id="m-s3" style="text-align:center">
+      <div class="success-ring">
+        <svg class="ck-svg" viewBox="0 0 52 52">
+          <circle class="ck-circ"  cx="26" cy="26" r="25" fill="none"/>
+          <path   class="ck-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+      </div>
+      <div class="m-title">Plan activated! 🎉</div>
+      <div class="m-sub">Check your email for details.</div>
+      <div class="perk-list">
+        <div class="perk-row"><span class="ck">✓</span>Unlimited AI analysis unlocked</div>
+        <div class="perk-row"><span class="ck">✓</span>Leaderboard access active</div>
+        <div class="perk-row"><span class="ck">✓</span>All drills &amp; features enabled</div>
+      </div>
+      <button class="m-confirm" id="m-done-btn" style="width:100%;margin-top:4px" onclick="closeModal()">
+        Start Training →
+      </button>
+    </div>
+
   </div>
 </div>
 
+<!-- ══ MAIN PAGE ══ -->
 <main class="page" id="page">
 
   <div class="notice" id="notice">
@@ -176,6 +704,7 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
     <button onclick="this.parentElement.classList.remove('show','err')">✕</button>
   </div>
 
+  <!-- Current plan banner — same as original upgrade.html -->
   <div class="cp-banner" id="cp-banner">
     <div class="cp-icon" id="cp-icon">🏸</div>
     <div class="cp-info">
@@ -185,103 +714,367 @@ html,body{min-height:100%;font-family:'Sora',sans-serif;background:var(--bg);col
     <div class="cp-badge" id="cp-badge">FREE</div>
   </div>
 
+  <!-- Header -->
   <div class="page-eyebrow au">Upgrade Your Plan</div>
-  <h1 class="page-title au">Train without <span>limits.</span></h1>
-  <p class="page-sub au">One simple price. Cancel anytime. Instant activation.</p>
+  <h1 class="page-title au d1">Train without <span>limits.</span></h1>
+  <p class="page-sub au d2">One simple price. Cancel anytime. Instant activation.<br>7-day free trial on all plans — no card required.</p>
 
+  <!-- Billing toggle -->
+  <div class="billing-row au d2">
+    <span class="billing-lbl on" id="lbl-mo">Monthly</span>
+    <label class="tog-wrap">
+      <input type="checkbox" id="billingToggle" onchange="toggleBilling()"/>
+      <div class="tog-track"></div>
+    </label>
+    <span class="billing-lbl" id="lbl-yr">Annual</span>
+    <span class="save-pill">Save 20%</span>
+  </div>
+
+  <!-- ══ PLAN CARDS ══ -->
   <div class="plans-grid">
-    <!-- Student -->
-    <div class="plan-card au d1">
-      <div class="plan-glow" style="background:radial-gradient(circle,rgba(57,224,122,.15),transparent 70%)"></div>
+
+    <!-- STUDENT -->
+    <div class="plan-card au d1" id="card-student">
+      <div class="plan-glow" style="background:radial-gradient(circle,rgba(57,224,122,.15),transparent 68%)"></div>
+      <div class="popular-badge">MOST POPULAR</div>
       <div class="plan-icon">🏸</div>
       <div class="plan-name">Student</div>
-      <div class="plan-role" style="color:#39e07a">For players & athletes</div>
-      <div class="plan-price-row"><div class="plan-price" style="color:#39e07a">₹199</div><div class="plan-period">/ month</div></div>
+      <div class="plan-role" style="color:var(--accent)">For players &amp; athletes</div>
+      <div class="plan-price-row">
+        <div class="plan-price" style="color:var(--accent)">₹<span id="p-student">199</span></div>
+        <div class="plan-period">/ month</div>
+      </div>
+      <div class="plan-annual" id="note-student"></div>
       <div class="plan-desc">Everything you need to train seriously and climb the leaderboard.</div>
       <div class="plan-features">
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited training sessions</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Advanced session analytics</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority leaderboard placement</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All drills & difficulty levels</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access to new features</div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Unlimited training sessions
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Advanced session analytics
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Priority leaderboard placement
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          All drills &amp; difficulty levels
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Movement heatmaps
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Daily AI challenges
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Early access to new features
+        </div>
+        <div class="plan-feat dim">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3d4f44" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Coach dashboard
+        </div>
+        <div class="plan-feat dim">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3d4f44" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Team management
+        </div>
       </div>
-      <button class="btn-up" onclick="openModal('student')" style="background:#39e07a;color:#060908;box-shadow:0 0 20px rgba(57,224,122,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹199
+      <button class="btn-up" id="cta-student" onclick="openModal('student')"
+        style="background:#39e07a;color:#060908;box-shadow:0 0 20px rgba(57,224,122,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Upgrade for ₹<span class="cta-price">199</span>
       </button>
     </div>
 
-    <!-- Coach -->
-    <div class="plan-card popular au d2">
-      <div class="plan-glow" style="background:radial-gradient(circle,rgba(96,180,255,.15),transparent 70%)"></div>
-      <div class="popular-badge">MOST POPULAR</div>
+    <!-- COACH -->
+    <div class="plan-card au d2" id="card-coach">
+      <div class="plan-glow" style="background:radial-gradient(circle,rgba(96,180,255,.15),transparent 68%)"></div>
+      <div class="coach-badge">FOR COACHES</div>
       <div class="plan-icon">🏅</div>
       <div class="plan-name">Coach</div>
-      <div class="plan-role" style="color:#60b4ff">For trainers & coaches</div>
-      <div class="plan-price-row"><div class="plan-price" style="color:#60b4ff">₹399</div><div class="plan-period">/ month</div></div>
+      <div class="plan-role" style="color:var(--blue)">For trainers &amp; coaches</div>
+      <div class="plan-price-row">
+        <div class="plan-price" style="color:var(--blue)">₹<span id="p-coach">399</span></div>
+        <div class="plan-period">/ month</div>
+      </div>
+      <div class="plan-annual" id="note-coach"></div>
       <div class="plan-desc">Manage your students, track their progress, and coach smarter.</div>
       <div class="plan-features">
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Student plan</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Manage up to 30 students</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Student performance dashboard</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Class analytics & comparisons</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>School/club code generation</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority support</div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Everything in Student plan
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Manage up to 30 students
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Student performance dashboard
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Class analytics &amp; comparisons
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          School / club code generation
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Export stats (CSV / PDF)
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60b4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Priority support
+        </div>
+        <div class="plan-feat dim">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3d4f44" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          School admin controls
+        </div>
       </div>
-      <button class="btn-up" onclick="openModal('coach')" style="background:#60b4ff;color:#060a14;box-shadow:0 0 20px rgba(96,180,255,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹399
+      <button class="btn-up" id="cta-coach" onclick="openModal('coach')"
+        style="background:#60b4ff;color:#060a14;box-shadow:0 0 20px rgba(96,180,255,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Upgrade for ₹<span class="cta-price">399</span>
       </button>
     </div>
 
-    <!-- School -->
-    <div class="plan-card au d3">
-      <div class="plan-glow" style="background:radial-gradient(circle,rgba(245,166,35,.12),transparent 70%)"></div>
+    <!-- SCHOOL -->
+    <div class="plan-card au d3" id="card-school">
+      <div class="plan-glow" style="background:radial-gradient(circle,rgba(245,166,35,.12),transparent 68%)"></div>
+      <div class="school-badge">ENTERPRISE</div>
       <div class="plan-icon">🏫</div>
       <div class="plan-name">School / Club</div>
-      <div class="plan-role" style="color:#f5a623">For academies & institutions</div>
-      <div class="plan-price-row"><div class="plan-price" style="color:#f5a623">₹699</div><div class="plan-period">/ month</div></div>
+      <div class="plan-role" style="color:var(--amber)">For academies &amp; institutions</div>
+      <div class="plan-price-row">
+        <div class="plan-price" style="color:var(--amber)">₹<span id="p-school">699</span></div>
+        <div class="plan-period">/ month</div>
+      </div>
+      <div class="plan-annual" id="note-school"></div>
       <div class="plan-desc">Full institution access with unlimited coaches and students.</div>
       <div class="plan-features">
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Coach plan</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited students</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Multi-coach management</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>School-wide leaderboard</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Branded experience</div>
-        <div class="plan-feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dedicated support</div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Everything in Coach plan
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Unlimited students
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Multi-coach management
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          School-wide leaderboard
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Performance heatmaps per student
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Attendance tracking
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Branded experience
+        </div>
+        <div class="plan-feat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f5a623" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Dedicated support manager
+        </div>
       </div>
-      <button class="btn-up" onclick="openModal('school')" style="background:#f5a623;color:#0a0600;box-shadow:0 0 20px rgba(245,166,35,.3)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Upgrade for ₹699
+      <button class="btn-up" id="cta-school" onclick="openModal('school')"
+        style="background:#f5a623;color:#0a0600;box-shadow:0 0 20px rgba(245,166,35,.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Get Institution Access
       </button>
+    </div>
+
+  </div>
+
+  <!-- ══ COMPARE ══ -->
+  <div class="sec-label au">Free vs Premium</div>
+  <div class="compare-wrap au">
+    <div class="compare-head">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#39e07a" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      What you unlock
+    </div>
+    <table class="ct">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Free</th>
+          <th class="col-hi">Premium</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="feat-name">AI analysis</td>     <td class="free-col">5/day</td>       <td class="prem-col"><span class="check">✓</span> Unlimited</td></tr>
+        <tr><td class="feat-name">Training sessions</td><td class="free-col">3/week</td>      <td class="prem-col"><span class="check">✓</span> Unlimited</td></tr>
+        <tr><td class="feat-name">Drill library</td>   <td class="free-col">20 drills</td>   <td class="prem-col"><span class="check">✓</span> All levels</td></tr>
+        <tr><td class="feat-name">Session history</td> <td class="free-col">7 days</td>      <td class="prem-col"><span class="check">✓</span> Full history</td></tr>
+        <tr><td class="feat-name">XP leaderboard</td>  <td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Full access</td></tr>
+        <tr><td class="feat-name">Daily challenges</td><td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> AI-generated</td></tr>
+        <tr><td class="feat-name">Analytics</td>       <td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Deep insights</td></tr>
+        <tr><td class="feat-name">Heatmaps</td>        <td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Student Plan+</td></tr>
+        <tr><td class="feat-name">Coach dashboard</td> <td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Coach Plan+</td></tr>
+        <tr><td class="feat-name">School management</td><td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Institution Plan</td></tr>
+        <tr><td class="feat-name">Data export</td>     <td class="free-col"><span class="cross">—</span></td><td class="prem-col"><span class="check">✓</span> Coach Plan+</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══ LEADERBOARD PREVIEW ══ -->
+  <div class="sec-label au">Leaderboard — Upgrade to Compete</div>
+  <div class="lb-preview au">
+    <div class="lb-preview-head">
+      <span class="lb-preview-title">India Rankings · This Week</span>
+      <span class="lb-live"><span class="lb-live-dot"></span>Live</span>
+    </div>
+    <div class="lb-row">
+      <span class="lb-pos">🥇</span>
+      <div class="lb-av">SV</div>
+      <span class="lb-name">Siddharth V.</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:100%"></div></div>
+      <span class="lb-xp">12,450 XP</span>
+    </div>
+    <div class="lb-row">
+      <span class="lb-pos">🥈</span>
+      <div class="lb-av">PR</div>
+      <span class="lb-name">Priya R.</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:89%"></div></div>
+      <span class="lb-xp">11,090 XP</span>
+    </div>
+    <div class="lb-row">
+      <span class="lb-pos">🥉</span>
+      <div class="lb-av">AM</div>
+      <span class="lb-name">Aditya M.</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:78%"></div></div>
+      <span class="lb-xp">9,720 XP</span>
+    </div>
+    <div class="lb-row you-row">
+      <span class="lb-pos" style="color:var(--text3)">??</span>
+      <div class="lb-av" style="color:var(--text3)">YOU</div>
+      <span class="lb-name" style="color:var(--text3)">Not ranked · upgrade to join</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:0%"></div></div>
+      <span class="lb-xp" style="color:var(--text3)">— XP</span>
     </div>
   </div>
 
-  <div class="faq-title au">Common questions</div>
+  <!-- ══ TESTIMONIALS ══ -->
+  <div class="sec-label au">What players are saying</div>
+  <div class="testi-grid">
+    <div class="testi-card au d1">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">Split-step reaction dropped 0.3s in 6 weeks. The AI catches things no human coach noticed. District ranking went 14th → 3rd.</p>
+      <div class="testi-author">
+        <div class="testi-av">AR</div>
+        <div><div class="testi-name">Arjun Raghav</div><div class="testi-role">U-19 Player · Chennai</div></div>
+      </div>
+      <span class="testi-plan">Student Plan</span>
+    </div>
+    <div class="testi-card au d2">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">I coach 24 students simultaneously. The dashboard saves 3 hours a day. AI session reports are more detailed than anything I'd write manually.</p>
+      <div class="testi-author">
+        <div class="testi-av">SP</div>
+        <div><div class="testi-name">Sneha Pillai</div><div class="testi-role">Head Coach · Bangalore Academy</div></div>
+      </div>
+      <span class="testi-plan">Coach Plan</span>
+    </div>
+    <div class="testi-card au d3">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-quote">Integrated across 3 campuses. Attendance + heatmap together justified the cost immediately. Parent review reports write themselves now.</p>
+      <div class="testi-author">
+        <div class="testi-av">MK</div>
+        <div><div class="testi-name">Mohan Kumar</div><div class="testi-role">Sports Director · DPS Hyderabad</div></div>
+      </div>
+      <span class="testi-plan">Institution Plan</span>
+    </div>
+  </div>
+
+  <!-- ══ FAQ — same grid pattern ══ -->
+  <div class="faq-head au">Common questions</div>
   <div class="faq-grid">
-    <div class="faq-item au"><div class="faq-q">Is this a real payment?</div><div class="faq-a">Not yet — this is simulation mode. No money is charged. Real payments via Razorpay are coming soon.</div></div>
-    <div class="faq-item au d1"><div class="faq-q">Can I cancel anytime?</div><div class="faq-a">Yes. Cancel anytime from your profile settings. You keep access until the end of your billing period.</div></div>
-    <div class="faq-item au d2"><div class="faq-q">What payment methods will be accepted?</div><div class="faq-a">UPI, debit/credit cards, net banking, and wallets via Razorpay.</div></div>
-    <div class="faq-item au d3"><div class="faq-q">What happens to my data if I downgrade?</div><div class="faq-a">All your session history and XP are kept forever. Only premium features become inaccessible.</div></div>
+    <div class="faq-item au">
+      <div class="faq-q">Is this a real payment?</div>
+      <div class="faq-a">Not yet — simulation mode only. No money is charged. Real payments via Razorpay coming soon. Plan activates immediately.</div>
+    </div>
+    <div class="faq-item au d1">
+      <div class="faq-q">Can I cancel anytime?</div>
+      <div class="faq-a">Yes. Cancel from profile settings anytime. You keep access until end of your billing period. No cancellation fees.</div>
+    </div>
+    <div class="faq-item au d2">
+      <div class="faq-q">What payment methods will be accepted?</div>
+      <div class="faq-a">UPI, debit/credit cards, net banking, and wallets via Razorpay when live payments launch.</div>
+    </div>
+    <div class="faq-item au d3">
+      <div class="faq-q">What happens to my data if I downgrade?</div>
+      <div class="faq-a">All session history and XP are kept forever. Only premium features become inaccessible.</div>
+    </div>
+    <div class="faq-item au d1">
+      <div class="faq-q">Is there a free trial?</div>
+      <div class="faq-a">All plans include a 7-day free trial. No card required. We'll remind you 48 hours before you're charged.</div>
+    </div>
+    <div class="faq-item au d2">
+      <div class="faq-q">Can I switch between plans?</div>
+      <div class="faq-a">Yes. Upgrades take effect immediately with prorated billing. Downgrades apply at the next billing cycle.</div>
+    </div>
+  </div>
+
+  <!-- ══ FINAL CTA BANNER ══ -->
+  <div class="cta-banner au">
+    <div class="cta-glow"></div>
+    <div class="cta-left">
+      <div class="cta-eyebrow">Ready to level up?</div>
+      <div class="cta-title">Start training like<br>a champion. Today.</div>
+      <div class="cta-sub">7-day free trial on all plans. No card needed. Cancel anytime.<br>AI runs on-device — no video stored or uploaded.</div>
+      <div class="trust-row">
+        <span class="trust-item">🔒 SSL secured</span>
+        <span class="trust-item">💳 Razorpay</span>
+        <span class="trust-item">⭐ 4.9 / 5 rating</span>
+        <span class="trust-item">🇮🇳 Made in India</span>
+      </div>
+    </div>
+    <div class="cta-right">
+      <button class="btn-up" onclick="openModal('student')"
+        style="background:#39e07a;color:#060908;box-shadow:0 0 24px rgba(57,224,122,.4);animation:glow 2.5s ease-in-out infinite">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Start Free Trial
+      </button>
+      <button class="btn-up ghost" onclick="openModal('school')">
+        Get Institution Access
+      </button>
+    </div>
   </div>
 
 </main>
 
 <script>
 /* ═══════════════════════════════════════════
-   PLAN CONFIG
+   PLAN CONFIG — same structure as your codebase
 ═══════════════════════════════════════════ */
 const PLANS = {
-  student: { label:'Student',      price:'₹199', color:'#39e07a', text:'#060908', icon:'🏸', key:'premium' },
-  coach:   { label:'Coach',        price:'₹399', color:'#60b4ff', text:'#060a14', icon:'🏅', key:'premium' },
-  school:  { label:'School / Club',price:'₹699', color:'#f5a623', text:'#0a0600', icon:'🏫', key:'school'  },
+  student:{ label:'Student',       price:199, annual:159, color:'#39e07a', text:'#060908', icon:'🏸', key:'premium' },
+  coach:  { label:'Coach',         price:399, annual:319, color:'#60b4ff', text:'#060a14', icon:'🏅', key:'premium' },
+  school: { label:'School / Club', price:699, annual:559, color:'#f5a623', text:'#0a0600', icon:'🏫', key:'school'  },
 }
 
 let _currentPlan = null
-let _AUTH = null
+let _AUTH        = null
+let _isAnnual    = false
 
-/* ═══════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════ */
-function $(id){ return document.getElementById(id) }
-function tx(id,v){ const e=$(id); if(e) e.textContent=v }
+/* ── same helpers as upgrade.html ── */
+function $(id)    { return document.getElementById(id) }
+function tx(id,v) { const e=$(id); if(e) e.textContent=v }
 
 function showNotice(msg, err=false) {
   const el=$('notice')
@@ -289,7 +1082,7 @@ function showNotice(msg, err=false) {
   el.classList.toggle('err', err)
   el.classList.add('show')
   clearTimeout(window._nt)
-  window._nt = setTimeout(()=>el.classList.remove('show','err'), 6000)
+  window._nt = setTimeout(() => el.classList.remove('show','err'), 6000)
 }
 
 function getCache() {
@@ -301,24 +1094,73 @@ function getCache() {
 }
 
 /* ═══════════════════════════════════════════
-   MODAL
+   BILLING TOGGLE
+═══════════════════════════════════════════ */
+function toggleBilling() {
+  _isAnnual = $('billingToggle').checked
+  $('lbl-mo').classList.toggle('on',  !_isAnnual)
+  $('lbl-yr').classList.toggle('on',   _isAnnual)
+
+  Object.entries(PLANS).forEach(([id, p]) => {
+    const price = _isAnnual ? p.annual : p.price
+    tweenNum($('p-' + id), parseInt($('p-' + id).textContent), price)
+    const note = $('note-' + id)
+    note.textContent = _isAnnual
+      ? `Billed as ₹${(price * 12).toLocaleString()}/year`
+      : ''
+  })
+
+  // Update CTA button prices
+  document.querySelectorAll('[id^="cta-"]').forEach(btn => {
+    const id  = btn.id.replace('cta-','')
+    const p   = PLANS[id]; if(!p) return
+    const pr  = _isAnnual ? p.annual : p.price
+    const sp  = btn.querySelector('.cta-price')
+    if(sp) sp.textContent = pr
+  })
+}
+
+function tweenNum(el, from, to) {
+  if (!el) return
+  const d=350, t0=performance.now()
+  const fn = now => {
+    const t = Math.min((now-t0)/d,1)
+    const e = 1 - Math.pow(1-t,2)
+    el.textContent = Math.round(from + (to-from)*e)
+    if(t<1) requestAnimationFrame(fn); else el.textContent=to
+  }
+  requestAnimationFrame(fn)
+}
+
+/* ═══════════════════════════════════════════
+   MODAL — same pattern as upgrade.html
 ═══════════════════════════════════════════ */
 function openModal(planId) {
   _currentPlan = planId
-  const p = PLANS[planId]
+  const p  = PLANS[planId]
+  const pr = _isAnnual ? p.annual : p.price
+
   tx('m-icon',  p.icon)
   tx('m-title', 'Upgrade to ' + p.label)
   tx('m-sub',   'Activate the ' + p.label + ' plan on your account.')
+
   const b = $('m-badge')
-  b.textContent       = p.price + ' / month'
-  b.style.background  = p.color + '22'
-  b.style.color       = p.color
-  b.style.border      = '1px solid ' + p.color + '55'
-  const btn = $('m-confirm')
+  b.textContent      = '₹' + pr + ' / month'
+  b.style.background = p.color + '22'
+  b.style.color      = p.color
+  b.style.border     = '1px solid ' + p.color + '55'
+
+  const btn = $('m-confirm-2')
   btn.style.background = p.color
   btn.style.color      = p.text
   btn.textContent      = '⚡ Activate Plan'
   btn.disabled         = false
+
+  const btn1 = $('m-confirm-1')
+  btn1.style.background = p.color
+  btn1.style.color      = p.text
+
+  showStep(1)
   $('pay-modal').classList.add('open')
 }
 
@@ -327,14 +1169,21 @@ function closeModal() {
   _currentPlan = null
 }
 
-document.getElementById('pay-modal').addEventListener('click', e => {
+$('pay-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal()
 })
+
+function showStep(n) {
+  for(let i=1;i<=3;i++)
+    $('m-s'+i).classList.toggle('hidden', i!==n)
+}
+function goStep1() { showStep(1) }
+function goStep2() { showStep(2) }
 
 async function confirmUpgrade() {
   if (!_currentPlan) return
   const p   = PLANS[_currentPlan]
-  const btn = $('m-confirm')
+  const btn = $('m-confirm-2')
   btn.disabled = true
   btn.innerHTML = '<span style="display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:_spin .7s linear infinite;vertical-align:middle;margin-right:6px"></span>Activating…'
 
@@ -342,98 +1191,105 @@ async function confirmUpgrade() {
     if (_AUTH && typeof _AUTH.upgradePlan === 'function') {
       await _AUTH.upgradePlan(null, p.key)
     } else {
-      // Fallback: update cache directly so dashboard reflects new plan
       const cache = getCache() || {}
       cache.plan = p.key
       const str = JSON.stringify(cache)
       sessionStorage.setItem('ssz_v2_user', str)
       localStorage.setItem('ssz_v2_user', str)
     }
-    closeModal()
-    showNotice('🎉 ' + p.label + ' plan activated! Redirecting…')
-    setTimeout(() => { window.location.href = 'dashboard.html' }, 1800)
+    showStep(3)
+    markCurrentPlan(_currentPlan)
+    setTimeout(() => {
+      showNotice('🎉 ' + p.label + ' plan activated! Redirecting…')
+    }, 600)
+    setTimeout(() => { window.location.href = 'dashboard.html' }, 3200)
   } catch(e) {
-    console.error('[upgrade] confirmUpgrade error:', e)
+    console.error('[upgrade] error:', e)
     showNotice('Something went wrong. Please try again.', true)
     btn.disabled = false
     btn.innerHTML = '⚡ Activate Plan'
   }
 }
 
+/* Mark a plan as current (disable its button) */
+function markCurrentPlan(planId) {
+  ['student','coach','school'].forEach(id => {
+    const btn = $('cta-'+id)
+    if (!btn) return
+    btn.disabled = false
+    btn.className = 'btn-up ghost'
+    btn.style.background = ''
+    btn.style.boxShadow = ''
+    btn.style.color = ''
+    btn.style.animation = ''
+    btn.innerHTML = id === planId
+      ? '<span style="color:var(--accent)">✓</span> Current Plan'
+      : btn.innerHTML
+    if(id === planId) {
+      btn.className = 'btn-up current'
+      btn.disabled = true
+    }
+  })
+}
+
+/* Card formatter */
+function fmtCard(i) {
+  let v = i.value.replace(/\D/g,'')
+  i.value = (v.match(/.{1,4}/g)||[]).join(' ').substring(0,19)
+}
+
 /* ═══════════════════════════════════════════
-   AUTH BOOT
-   — Uses plain <script> (not module) so no
-     import errors crash the whole page
-   — Dynamically imports auth.js after cache check
-   — Page is hidden until auth resolves
+   PAGE REVEAL — same as upgrade.html
 ═══════════════════════════════════════════ */
 const loadingEl = $('auth-loading')
 const pageEl    = $('page')
 
 function revealPage(user) {
-  loadingEl.classList.add('done')
-  pageEl.classList.add('ready')
+  // Always dismiss loader and show page — even with no user
+  if (loadingEl) loadingEl.classList.add('done')
+  if (pageEl)    pageEl.classList.add('ready')
   if (!user) return
-  const isPrem = user.plan==='premium' || user.plan==='school'
-    || (user.email||'').toLowerCase()==='techycoder1@gmail.com'
+
+  // XP badge
+  tx('xp-val', (user.xp || 0).toLocaleString() + ' XP')
+
+  const isPrem = user.plan === 'premium' || user.plan === 'school'
+    || (user.email||'').toLowerCase() === 'techycoder1@gmail.com'
+
+  // Show banner
   const banner = $('cp-banner')
   banner.classList.add('show')
   tx('cp-name',  isPrem ? 'Premium ⭐' : 'Free')
-  tx('cp-badge', isPrem ? 'PREMIUM' : 'FREE')
+  tx('cp-badge', isPrem ? 'PREMIUM'    : 'FREE')
   tx('cp-sub',   isPrem
     ? 'You already have a premium plan. Upgrade to a higher tier anytime.'
     : 'Upgrade below to unlock unlimited training.')
   if (isPrem) tx('cp-icon', '⭐')
+
+  // Disable current plan button
+  if (user.plan === 'premium') markCurrentPlan('student')
+  if (user.plan === 'school')  markCurrentPlan('school')
 }
 
-(function boot() {
-  // ── Fast path: cache already in storage ──
-  const cached = getCache()
-  if (cached) {
-    revealPage(cached)
-    // Load auth.js in background silently for upgradePlan support
-    import('./js/auth.js').then(m => {
-      _AUTH = m.default || m.AUTH || m
-      window.AUTH = _AUTH
-    }).catch(() => {/* non-fatal */})
-    return
-  }
+/* ═══════════════════════════════════════════
+   AUTH BOOT — exact same pattern as upgrade.html
+═══════════════════════════════════════════ */
+;(function boot() {
+  // ── Upgrade page is PUBLIC — show immediately, no auth gate ──
+  // Reveal the page right away so users never see a loading screen.
+  // Auth enrichment runs silently in the background.
+  revealPage(getCache())   // works fine with null (shows generic state)
 
-  // ── Slow path: wait for Firebase via auth.js ──
-  let done = false
-
-  function resolve(user) {
-    if (done) return
-    done = true
-    window.removeEventListener('ssz-user-ready', onReady)
-    window.removeEventListener('ssz-no-user',    onNone)
-    clearTimeout(timer)
-    if (user) {
-      revealPage(user)
-    } else {
-      // Truly not logged in → go to login
-      window.location.href = 'login.html'
-    }
-  }
-
-  const onReady = e => { _AUTH = window.AUTH; resolve(e.detail) }
-  const onNone  = ()  => resolve(null)
-  window.addEventListener('ssz-user-ready', onReady)
-  window.addEventListener('ssz-no-user',    onNone)
-
-  // 6 second safety timeout
-  const timer = setTimeout(() => resolve(getCache()), 6000)
-
-  // Dynamically import auth.js to trigger Firebase
+  // Background: try to load auth for user personalisation + upgradePlan()
   import('./js/auth.js').then(m => {
     _AUTH = m.default || m.AUTH || m
     window.AUTH = _AUTH
-    // Check cache right after import — may have been populated synchronously
-    const u = getCache()
-    if (u) resolve(u)
-  }).catch(err => {
-    console.error('[upgrade] auth.js failed:', err)
-    resolve(getCache()) // null → redirect to login
+  }).catch(() => { /* non-fatal — upgrade still works via cache fallback */ })
+
+  // If Firebase resolves a user later, re-enrich the UI
+  window.addEventListener('ssz-user-ready', e => {
+    _AUTH = window.AUTH
+    revealPage(e.detail)
   })
 })()
 </script>
