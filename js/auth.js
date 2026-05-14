@@ -11,7 +11,9 @@ const PREMIUM = window.PREMIUM || null
 
 /* ── Creator emails ──────────────────────────────────────────── */
 const CREATOR_EMAILS = [
-  'techycoder1@gmail.com',
+  'aarohan0207@gmail.com',
+  'aarohan0207.com@gmail.com',
+  'shuttlestepz@gmail.com',
 ]
 
 /* ── Session cache ───────────────────────────────────────────── */
