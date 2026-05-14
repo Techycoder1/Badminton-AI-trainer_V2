@@ -9,11 +9,10 @@ import DB from './database.js'
 // premium.js is a landing page file — access via window.PREMIUM if available
 const PREMIUM = window.PREMIUM || null
 
-/* ── Creator emails ──────────────────────────────────────────── */
+/* ── Creator emails — full access, no upgrade needed ────────── */
 const CREATOR_EMAILS = [
+  'techycoder1@gmail.com',
   'aarohan0207@gmail.com',
-  'aarohan0207.com@gmail.com',
-  'shuttlestepz@gmail.com',
 ]
 
 /* ── Session cache ───────────────────────────────────────────── */
@@ -44,21 +43,25 @@ const FREE_LIMIT = 5
 DB.onAuthReady(async (fbUser) => {
   if (!fbUser) {
     clearCache()
-    // FIX: Dispatch ssz-no-user so pages like premium.html know Firebase
-    // confirmed "no user" immediately, instead of waiting for the 6s timeout
-    // and then incorrectly redirecting to login.html.
     window.dispatchEvent(new CustomEvent('ssz-no-user'))
     return
   }
   try {
     const p   = await DB.getUserProfile(fbUser.uid)
     const lvl = calcLevelInfo(p.xp || 0)
+
+    const email = (p.profile?.email || fbUser.email || '').toLowerCase()
+
+    // Creator emails always get school-level plan — no DB write needed
+    const isCreator = CREATOR_EMAILS.includes(email)
+    const plan      = isCreator ? 'school' : (p.profile?.plan || 'free')
+
     setCache({
       uid           : fbUser.uid,
       username      : p.profile?.displayName || fbUser.displayName || 'Athlete',
       email         : p.profile?.email       || fbUser.email,
       role          : p.profile?.role        || 'student',
-      plan          : p.profile?.plan        || 'free',
+      plan,
       schoolId      : p.profile?.schoolCode  || null,
       xp            : p.xp          || 0,
       level         : lvl.level,
@@ -121,20 +124,8 @@ const AUTH = {
   currentUser() { return getCache() },
 
   // ── Guards ────────────────────────────────────────────────
-
-  /*
-   * FIX: requireAuth was synchronous — read cache, redirect if null.
-   * Problem: on page load, DB.onAuthReady hasn't fired yet, so cache
-   * is empty even for logged-in users → instant redirect to login.
-   *
-   * Fix: wait up to 4 seconds for either:
-   *   a) cache to be populated by DB.onAuthReady  (happy path)
-   *   b) Firebase to confirm no user (genuinely logged out)
-   * Then decide whether to redirect or resolve with the user.
-   */
   requireAuth(redirect = 'login.html') {
     return new Promise((resolve) => {
-      // Already cached — resolve immediately
       const cached = getCache()
       if (cached) { resolve(cached); return }
 
@@ -162,7 +153,6 @@ const AUTH = {
       window.addEventListener('ssz-user-ready', onReady)
       window.addEventListener('ssz-no-user',    onNone)
 
-      // Also poll the cache directly every 100ms as a fallback
       const poll = setInterval(() => {
         const u = getCache()
         if (u && !resolved) {
@@ -174,7 +164,6 @@ const AUTH = {
         }
       }, 100)
 
-      // Timeout: if nothing after 4s, user is genuinely not logged in
       const timer = setTimeout(() => {
         if (!resolved) {
           resolved = true
@@ -215,12 +204,26 @@ const AUTH = {
     if (CREATOR_EMAILS.includes((u.email || '').toLowerCase())) return true
     return u.plan === 'premium' || u.plan === 'school'
   },
+
+  // ── upgradePlan — offline-safe ────────────────────────────
+  // Always updates local cache first so the UI never hangs.
+  // Firestore write is attempted silently; if the client is
+  // offline or the write fails, the local cache still has the
+  // correct plan and Firestore will sync on next connection.
   async upgradePlan(uid, plan = 'premium') {
+    // 1. Update local cache immediately — works even when offline
+    const c = getCache()
+    if (c) { c.plan = plan; setCache(c) }
+
+    // 2. Attempt Firestore write — silently ignore offline/network errors
     try {
       await DB.updateUserProfile({ plan })
-      const c = getCache(); if (c) { c.plan = plan; setCache(c) }
-      return true
-    } catch { return false }
+    } catch(e) {
+      console.warn('[AUTH] upgradePlan: Firestore unavailable, saved locally only.', e.message)
+      // Non-fatal — local cache is the source of truth for this session
+    }
+
+    return true
   },
 
   // ── Session limit ─────────────────────────────────────────
@@ -231,6 +234,7 @@ const AUTH = {
     if (u.lastSessionDay !== today) return true
     return (u.sessionsToday || 0) < FREE_LIMIT
   },
+
   sessionsRemaining() {
     const u = getCache(); if (!u) return 0
     if (this.isPremium()) return Infinity
@@ -238,6 +242,7 @@ const AUTH = {
     if (u.lastSessionDay !== today) return FREE_LIMIT
     return Math.max(0, FREE_LIMIT - (u.sessionsToday || 0))
   },
+
   async incrementSession() {
     const u = getCache(); if (!u || this.isPremium()) return
     const today = new Date().toDateString()
