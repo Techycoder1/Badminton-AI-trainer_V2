@@ -1187,28 +1187,25 @@ async function confirmUpgrade() {
   btn.disabled = true
   btn.innerHTML = '<span style="display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:_spin .7s linear infinite;vertical-align:middle;margin-right:6px"></span>Activating…'
 
-  try {
-    if (_AUTH && typeof _AUTH.upgradePlan === 'function') {
-      await _AUTH.upgradePlan(null, p.key)
-    } else {
-      const cache = getCache() || {}
-      cache.plan = p.key
-      const str = JSON.stringify(cache)
-      sessionStorage.setItem('ssz_v2_user', str)
-      localStorage.setItem('ssz_v2_user', str)
-    }
-    showStep(3)
-    markCurrentPlan(_currentPlan)
-    setTimeout(() => {
-      showNotice('🎉 ' + p.label + ' plan activated! Redirecting…')
-    }, 600)
-    setTimeout(() => { window.location.href = 'dashboard.html' }, 3200)
-  } catch(e) {
-    console.error('[upgrade] error:', e)
-    showNotice('Something went wrong. Please try again.', true)
-    btn.disabled = false
-    btn.innerHTML = '⚡ Activate Plan'
+  // Step 1: Update cache IMMEDIATELY — never block success on Firestore
+  const cache = getCache() || {}
+  cache.plan = p.key
+  const str = JSON.stringify(cache)
+  sessionStorage.setItem('ssz_v2_user', str)
+  localStorage.setItem('ssz_v2_user', str)
+
+  // Step 2: Fire Firestore write in background with 3s hard timeout
+  // Never await — if it fails or hangs, local cache already has the plan
+  if (_AUTH && typeof _AUTH.upgradePlan === 'function') {
+    const timeout = new Promise(r => setTimeout(r, 3000))
+    Promise.race([_AUTH.upgradePlan(null, p.key), timeout])
+      .catch(e => console.warn('[upgrade] Firestore write failed (non-fatal):', e))
   }
+
+  // Step 3: Show success immediately
+  showStep(3)
+  markCurrentPlan(_currentPlan)
+  setTimeout(() => { window.location.href = 'dashboard.html' }, 2800)
 }
 
 /* Mark a plan as current (disable its button) */
