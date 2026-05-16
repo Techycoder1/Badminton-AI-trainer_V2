@@ -6,6 +6,168 @@
 <title>Sign Up — Shuttlestepz</title>
 <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/base.css">
 <link rel="stylesheet" href="/Badminton-AI-trainer_V2/css/signup.css">
+<style>
+  /* ── Checkout Modal ───────────────────────────────────────── */
+  .checkout-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(6px);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .checkout-overlay.open { display: flex; }
+
+  .checkout-modal {
+    background: #111f14;
+    border: 1.5px solid #2a3d2e;
+    border-radius: 18px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    animation: modalIn .22s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform:translateY(18px) scale(.97); }
+    to   { opacity:1; transform:none; }
+  }
+
+  .checkout-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none; border: none;
+    color: var(--text3, #5a7a60);
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background .15s;
+  }
+  .checkout-close:hover { background: rgba(255,255,255,.06); }
+
+  .checkout-eyebrow {
+    font-size: .65rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #f5c518;
+    font-family: 'Space Mono', monospace, sans-serif;
+    margin-bottom: .5rem;
+  }
+  .checkout-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+  }
+  .checkout-subtitle {
+    font-size: .8rem;
+    color: var(--text3, #5a7a60);
+    margin-bottom: 1.4rem;
+  }
+
+  .checkout-summary {
+    background: rgba(255,255,255,.03);
+    border: 1px solid #1e3322;
+    border-radius: 10px;
+    padding: .9rem 1rem;
+    margin-bottom: 1.4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .checkout-summary-label { font-size: .8rem; color: var(--text3, #5a7a60); }
+  .checkout-summary-price { font-size: 1.1rem; font-weight: 700; color: #f5c518; }
+  .checkout-summary-cycle { font-size: .7rem; color: var(--text3, #5a7a60); margin-top: 2px; text-align: right; }
+
+  .checkout-divider {
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text3, #5a7a60);
+    text-align: center;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .checkout-divider::before, .checkout-divider::after {
+    content:'';
+    position: absolute;
+    top: 50%; width: 38%; height: 1px;
+    background: #1e3322;
+  }
+  .checkout-divider::before { left: 0; }
+  .checkout-divider::after  { right: 0; }
+
+  /* UPI field */
+  .checkout-field { margin-bottom: 1rem; }
+  .checkout-field label {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    margin-bottom: .35rem;
+    color: var(--text2, #e8f5ea);
+  }
+  .checkout-field input {
+    width: 100%;
+    background: #0d1a10;
+    border: 1.5px solid #1e3322;
+    border-radius: 9px;
+    padding: .7rem .9rem;
+    color: var(--text, #e8f5ea);
+    font-size: .88rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .checkout-field input:focus { border-color: var(--accent, #3dff6e); }
+  .checkout-field input.err  { border-color: #e04848; }
+  .checkout-hint {
+    font-size: .7rem;
+    color: var(--text3, #5a7a60);
+    margin-top: .3rem;
+  }
+
+  /* Pay button */
+  .btn-pay {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f5c518, #e6a800);
+    color: #0d1a10;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: .5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    transition: opacity .2s, transform .15s;
+  }
+  .btn-pay:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  .btn-pay:disabled { opacity: .5; cursor: not-allowed; }
+
+  .pay-secure {
+    text-align: center;
+    font-size: .68rem;
+    color: var(--text3, #5a7a60);
+    margin-top: .75rem;
+  }
+
+  /* Spinner reuse */
+  .btn-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,.3);
+    border-top-color: #0d1a10;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
 <div class="bg-noise"></div>
@@ -186,6 +348,43 @@
 
 </div>
 
+<!-- ════ CHECKOUT MODAL ════ -->
+<div class="checkout-overlay" id="checkout-overlay" role="dialog" aria-modal="true" aria-label="Premium checkout">
+  <div class="checkout-modal">
+    <button class="checkout-close" id="checkout-close" aria-label="Close">✕</button>
+
+    <div class="checkout-eyebrow">⭐ Premium Checkout</div>
+    <div class="checkout-title">Complete your payment</div>
+    <div class="checkout-subtitle">Pay to activate Premium — your account is created right after.</div>
+
+    <div class="checkout-summary">
+      <div>
+        <div class="checkout-summary-label">Shuttlestepz Premium</div>
+        <div style="font-size:.72rem;color:var(--text3,#5a7a60);margin-top:3px">Unlimited · Analytics · Leaderboard</div>
+      </div>
+      <div>
+        <div class="checkout-summary-price" id="checkout-price">₹199</div>
+        <div class="checkout-summary-cycle">/ month</div>
+      </div>
+    </div>
+
+    <div class="checkout-divider">Pay via UPI</div>
+
+    <div class="checkout-field">
+      <label for="upi-id">UPI ID</label>
+      <input type="text" id="upi-id" placeholder="yourname@upi" autocomplete="off" inputmode="email"/>
+      <div class="checkout-hint">e.g. 9876543210@paytm · name@gpay · name@okaxis</div>
+    </div>
+
+    <div id="checkout-error" style="font-size:.75rem;color:#e04848;margin-bottom:.6rem;display:none"></div>
+
+    <button class="btn-pay" id="btn-pay">
+      Pay &amp; Create Account →
+    </button>
+    <div class="pay-secure">🔒 Simulated payment · No real charge in demo</div>
+  </div>
+</div>
+
 <script type="module">
   import AUTH from '/Badminton-AI-trainer_V2/js/auth.js'
 
@@ -194,42 +393,40 @@
 
   AUTH.requireGuest()
 
-  /* ── Premium price per role (INR) ───────────────────────── */
-  const PREMIUM_PRICES = {
-    student: 199,
-    teacher: 399,
-    coach:   699,
-  }
+  /* ── Premium prices per role (INR) ─────────────────────── */
+  const PREMIUM_PRICES = { student: 199, teacher: 399, coach: 699 }
 
-  const premiumPriceEl = document.getElementById('premium-price')
+  /* ── State ───────────────────────────────────────────────── */
+  let role = 'student'
+  let plan = 'free'
 
-  function updatePremiumPrice(role) {
-    premiumPriceEl.textContent = `₹${PREMIUM_PRICES[role]} / month`
-  }
+  // Pending form data — filled before checkout opens, used after payment
+  let pendingSignup = null
 
   /* ── Role selector ──────────────────────────────────────── */
-  let role = 'student'
   document.querySelectorAll('.role-opt').forEach(opt => {
     opt.addEventListener('click', () => {
       document.querySelectorAll('.role-opt').forEach(o => o.classList.remove('selected'))
       opt.classList.add('selected')
       role = opt.dataset.role
-
-      // Update premium price whenever role changes
-      updatePremiumPrice(role)
-
+      document.getElementById('premium-price').textContent =
+        `₹${PREMIUM_PRICES[role]} / month`
+      document.getElementById('checkout-price').textContent =
+        `₹${PREMIUM_PRICES[role]}`
       document.getElementById('school-group').style.display =
         role !== 'student' ? 'block' : 'none'
     })
   })
 
   /* ── Plan selector ──────────────────────────────────────── */
-  let plan = 'free'
   document.querySelectorAll('.plan-opt').forEach(opt => {
     opt.addEventListener('click', () => {
       document.querySelectorAll('.plan-opt').forEach(o => o.classList.remove('selected'))
       opt.classList.add('selected')
       plan = opt.dataset.plan
+      // Update submit button label to hint what happens next
+      document.getElementById('btn-signup').innerHTML =
+        plan === 'premium' ? 'Continue to Payment →' : 'Create Account →'
     })
   })
 
@@ -266,7 +463,7 @@
     lbl.style.color = st.color
   })
 
-  /* ── UI helpers ─────────────────────────────────────────── */
+  /* ── Form UI helpers ────────────────────────────────────── */
   const errB = document.getElementById('error-banner')
 
   function showErr(msg) {
@@ -274,20 +471,49 @@
     errB.classList.add('show')
     errB.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
-
-  function hideErr() {
-    errB.classList.remove('show')
-  }
+  function hideErr() { errB.classList.remove('show') }
 
   function setLoading(on) {
     const b = document.getElementById('btn-signup')
     b.disabled = on
     b.innerHTML = on
       ? '<span class="btn-spinner"></span>Creating account…'
-      : 'Create Account →'
+      : (plan === 'premium' ? 'Continue to Payment →' : 'Create Account →')
   }
 
-  /* ── Signup submit ──────────────────────────────────────── */
+  /* ── Checkout modal helpers ─────────────────────────────── */
+  const overlay = document.getElementById('checkout-overlay')
+
+  function openCheckout() {
+    document.getElementById('checkout-price').textContent = `₹${PREMIUM_PRICES[role]}`
+    document.getElementById('upi-id').value = ''
+    document.getElementById('checkout-error').style.display = 'none'
+    overlay.classList.add('open')
+    document.getElementById('upi-id').focus()
+  }
+  function closeCheckout() {
+    overlay.classList.remove('open')
+    setLoading(false)
+  }
+
+  document.getElementById('checkout-close').addEventListener('click', closeCheckout)
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeCheckout() })
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCheckout() })
+
+  /* ── The actual account creation (shared by both paths) ── */
+  async function doSignup(username, email, pw, schoolId) {
+    try {
+      const res = await AUTH.signup(username, email, pw, role, schoolId)
+      if (!res.ok) { showErr(res.msg); return false }
+      return true
+    } catch (err) {
+      console.error('[signup] Unexpected error:', err)
+      showErr('An unexpected error occurred. Please try again.')
+      return false
+    }
+  }
+
+  /* ── Form submit ────────────────────────────────────────── */
   document.getElementById('signup-form').addEventListener('submit', async () => {
     const username = document.getElementById('username').value.trim()
     const email    = document.getElementById('email').value.trim()
@@ -302,34 +528,65 @@
     if (!pw || pw.length < 6)             return showErr('Password must be at least 6 characters.')
     if (!terms)                           return showErr('Please accept the Terms of Service.')
 
+    if (plan === 'premium') {
+      // Stash form data, open checkout — account created after payment
+      pendingSignup = { username, email, pw, schoolId }
+      openCheckout()
+      return
+    }
+
+    // Free plan — create account immediately
     setLoading(true)
-
-    try {
-      const res = await AUTH.signup(username, email, pw, role, schoolId)
-
-      if (!res.ok) {
-        showErr(res.msg)
-        return
-      }
-
-      if (plan === 'premium') {
-        const upg = await AUTH.upgradePlan(null, 'premium')
-        if (!upg.ok) {
-          sessionStorage.setItem(
-            'shuttlestepz_notice',
-            "Premium upgrade didn't complete. Please retry in Settings."
-          )
-        }
-      }
-
-      console.log('[signup] ✔ Success — redirecting to dashboard')
+    const ok = await doSignup(username, email, pw, schoolId)
+    if (ok) {
+      console.log('[signup] ✔ Free — redirecting to dashboard')
       window.location.href = 'dashboard.html'
-
-    } catch (err) {
-      console.error('[signup] Unexpected error:', err)
-      showErr('An unexpected error occurred. Please try again.')
-    } finally {
+    } else {
       setLoading(false)
+    }
+  })
+
+  /* ── Checkout pay button ────────────────────────────────── */
+  document.getElementById('btn-pay').addEventListener('click', async () => {
+    const upi    = document.getElementById('upi-id').value.trim()
+    const errEl  = document.getElementById('checkout-error')
+    const btnPay = document.getElementById('btn-pay')
+
+    // Basic UPI validation: must contain @
+    if (!upi || !upi.includes('@')) {
+      errEl.textContent = 'Enter a valid UPI ID (e.g. name@gpay)'
+      errEl.style.display = 'block'
+      return
+    }
+    errEl.style.display = 'none'
+
+    // Simulate payment processing
+    btnPay.disabled = true
+    btnPay.innerHTML = '<span class="btn-spinner"></span>Processing payment…'
+
+    await new Promise(r => setTimeout(r, 1800)) // simulated delay
+
+    // Payment "succeeded" — now create the account with premium
+    const { username, email, pw, schoolId } = pendingSignup
+    const ok = await doSignup(username, email, pw, schoolId)
+
+    if (ok) {
+      // Mark premium in DB
+      const upg = await AUTH.upgradePlan(null, 'premium').catch(() => ({ ok: false }))
+      if (!upg.ok) {
+        sessionStorage.setItem(
+          'shuttlestepz_notice',
+          "Payment received but Premium upgrade didn't complete. Please retry in Settings."
+        )
+      }
+      console.log('[signup] ✔ Premium — redirecting to dashboard')
+      window.location.href = 'dashboard.html'
+    } else {
+      // Account creation failed — re-enable pay button so user can retry
+      btnPay.disabled = false
+      btnPay.innerHTML = 'Pay &amp; Create Account →'
+      errEl.textContent = 'Account creation failed. Check form errors and try again.'
+      errEl.style.display = 'block'
     }
   })
 </script>
