@@ -1777,6 +1777,7 @@ var TR = (function () {
     var badge = el('tr-pose-badge');
     if (badge) { badge.textContent = 'LOADING…'; badge.className = ''; }
 
+   await tf.ready();
     detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,
       { runtime: 'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
@@ -2566,8 +2567,9 @@ DB.onAuthReady(async (firebaseUser) => {
     console.error('[dash] boot error:', err.message)
   }
 })
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.20.0/dist/tf-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.20.0/dist/tf-backend-webgl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.20.0/dist/tf-converter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
 </body>
 </html>
