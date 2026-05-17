@@ -2058,52 +2058,238 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script type="module">
-/* Load auth only — no dashboard.js import (causes roleBadge conflict) */
-try {
-  const mod  = await import('./js/auth.js');
-  const AUTH = mod.default || mod.AUTH || {};
-  window.AUTH = AUTH;
+import DB from './js/database.js'
 
-  /* doLogout */
-  window.doLogout = function() {
-    try {
-      if (typeof AUTH.logout  === 'function') { AUTH.logout();  return; }
-      if (typeof AUTH.signOut === 'function') { AUTH.signOut(); return; }
-    } catch(e) {}
-    window.location.href = 'login.html';
-  };
+window.AUTH = DB
 
-  /* Boot dashboard with real user data once AUTH is ready */
-  window.addEventListener('ssz-user-ready', (e) => {
-    const user = e.detail;
-    if (!user) return;
-    if (typeof UI !== 'undefined') {
-      if (UI.boot) UI.boot(null, user);
-    }
-    /* Populate profile fields */
-    const tx = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-    tx('greet-name',   user.username  || 'Athlete');
-    tx('profile-name', user.username  || '—');
-    tx('profile-email',user.email     || '—');
-    tx('profile-av',   (user.username || '?').slice(0,2).toUpperCase());
-    tx('profile-pill', user.role      || 'Student');
-    tx('s-user',       user.username  || '—');
-    tx('s-email',      user.email     || '—');
-    tx('s-plan',       user.plan === 'premium' || user.plan === 'school' ? '⭐ Premium' : 'Free');
-    tx('role-badge',   user.role      || 'Student');
-    /* Hide upgrade button if already premium */
-    const btn = document.getElementById('btn-upgrade');
-    if (btn && (user.plan === 'premium' || user.plan === 'school')) btn.style.display = 'none';
-    /* Render XP from Firebase */
-    if (typeof UI !== 'undefined' && UI.renderXP) UI.renderXP(user.xp || 0);
-  });
+const tx = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v }
+const $  = id => document.getElementById(id)
 
-  console.log('[dashboard] ✅ auth.js loaded');
-} catch(e) {
-  console.warn('[dashboard] auth.js not loaded:', e.message);
+window.doLogout = async () => {
+  try { await DB.logoutUser() } catch(e) {}
+  window.location.href = 'login.html'
 }
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+
+const XP_THRESHOLDS = [0,500,1200,2200,3500,5200,7200,9800,13000,17000,22000]
+
+function renderXPData(xp, level) {
+  const cur = XP_THRESHOLDS[level-1] || 0
+  const nxt = XP_THRESHOLDS[level]   || XP_THRESHOLDS[XP_THRESHOLDS.length-1]
+  const pct = Math.min(Math.max((xp-cur)/(nxt-cur||1),0),1)
+  const arc = $('ring-arc')
+  if (arc) arc.style.strokeDashoffset = 219.9 - pct*219.9
+  tx('ring-lv',        level)
+  tx('xp-total',       xp.toLocaleString()+' XP')
+  tx('xp-next',        level >= XP_THRESHOLDS.length ? 'Max Level!'
+    : (xp-cur).toLocaleString()+' / '+(nxt-cur).toLocaleString()+' to Level '+(level+1))
+  const fl = $('xp-fill-lg');  if (fl) fl.style.width = (pct*100)+'%'
+  const sf = $('sb-xp-fill');  if (sf) sf.style.width = (pct*100)+'%'
+  tx('sb-xp-label',    xp+' XP')
+  tx('sb-level-label', 'Lv.'+level)
+  tx('topbar-xp',      xp+' XP')
+}
+
+function fmtDate(ts) {
+  if (!ts) return 'Just now'
+  const d    = ts.toDate ? ts.toDate() : new Date(ts)
+  const diff = Date.now() - d.getTime()
+  if (diff < 60000)    return 'Just now'
+  if (diff < 3600000)  return Math.floor(diff/60000)+'m ago'
+  if (diff < 86400000) return Math.floor(diff/3600000)+'h ago'
+  return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})
+}
+
+function buildSessionCard(s) {
+  const total = s.totalRounds || 1
+  const acc   = s.accuracy != null ? s.accuracy+'%' : Math.round(((s.hits||0)/total)*100)+'%'
+  const xpe   = s.xpEarned || (50+(s.hits||0)*2)
+  const drill = (s.drill||s.mode||'footwork').replace(/^\w/,c=>c.toUpperCase())
+  return `
+    <div class="session-item">
+      <div class="session-icon">🏸</div>
+      <div class="session-info">
+        <div class="session-name">${drill} Drill</div>
+        <div class="session-meta">Score ${s.score||0} · Acc ${acc} · Streak ${s.bestStreak||0}🔥 · ${fmtDate(s.createdAt)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <div class="session-xp">+${xpe} XP</div>
+        <div class="session-score">${s.score||0} pts</div>
+      </div>
+    </div>`
+}
+
+function drawGraph(sessions) {
+  let canvas = $('score-graph')
+  if (!canvas) {
+    const hist = $('history-sessions')
+    if (!hist) return
+    const wrap = document.createElement('div')
+    wrap.id = 'score-graph-wrap'
+    wrap.style.cssText = 'background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 16px 14px;margin-bottom:16px'
+    wrap.innerHTML = `
+      <div style="font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px">📈 Score Over Time</div>
+      <canvas id="score-graph" height="140" style="width:100%;display:block;border-radius:6px"></canvas>`
+    hist.parentNode.insertBefore(wrap, hist)
+    canvas = $('score-graph')
+  }
+  const wrap  = $('score-graph-wrap')
+  const recent = [...sessions].reverse().slice(-20)
+  if (recent.length < 2) { if (wrap) wrap.style.display='none'; return }
+  if (wrap) wrap.style.display = 'block'
+
+  const dpr = window.devicePixelRatio||1
+  const W = canvas.offsetWidth||520, H = 140
+  canvas.width  = W*dpr; canvas.height = H*dpr
+  canvas.style.width = W+'px'; canvas.style.height = H+'px'
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H)
+
+  const pL=16,pR=16,pT=14,pB=28, cW=W-pL-pR, cH=H-pT-pB
+  const scores = recent.map(s=>s.score||0)
+  const minS=Math.min(...scores), maxS=Math.max(...scores)||1, range=maxS-minS||1
+
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1
+  for(let i=0;i<=3;i++){const y=pT+(cH/3)*i;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke()}
+
+  const pts = scores.map((s,i)=>({x:pL+(i/(scores.length-1))*cW, y:pT+(1-(s-minS)/range)*cH}))
+
+  const grad = ctx.createLinearGradient(0,pT,0,pT+cH)
+  grad.addColorStop(0,'rgba(57,224,122,0.2)'); grad.addColorStop(1,'rgba(57,224,122,0.01)')
+  ctx.beginPath(); ctx.moveTo(pts[0].x,pT+cH)
+  pts.forEach(p=>ctx.lineTo(p.x,p.y)); ctx.lineTo(pts[pts.length-1].x,pT+cH)
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill()
+
+  ctx.beginPath(); ctx.strokeStyle='#39e07a'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round'
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke()
+
+  pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fillStyle='#39e07a';ctx.fill();ctx.strokeStyle='#111f14';ctx.lineWidth=2;ctx.stroke()})
+
+  ctx.fillStyle='rgba(122,144,128,0.75)'; ctx.font='10px DM Mono,monospace'; ctx.textAlign='center'
+  const li=[0,Math.floor(pts.length/2),pts.length-1]
+  li.forEach(i=>{const ts=recent[i]?.createdAt;const d=ts?.toDate?ts.toDate():(ts?new Date(ts):null);ctx.fillText(d?d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'#'+(i+1),pts[i].x,H-6)})
+}
+
+function renderSessions(sessions) {
+  const ov    = $('overview-sessions')
+  const empty = $('sessions-empty')
+  if (ov) {
+    ov.querySelectorAll('.session-item').forEach(e=>e.remove())
+    if (sessions.length === 0) {
+      if (empty) empty.style.display='flex'
+    } else {
+      if (empty) empty.style.display='none'
+      sessions.slice(0,3).forEach(s=>ov.insertAdjacentHTML('beforeend',buildSessionCard(s)))
+    }
+  }
+  const hs = $('history-sessions')
+  if (hs) {
+    hs.innerHTML = sessions.length === 0
+      ? `<div class="empty-state"><div class="empty-icon">📋</div><div>No sessions yet. Complete a drill to see history.</div></div>`
+      : sessions.map(buildSessionCard).join('')
+  }
+  const totalXP  = sessions.reduce((a,s)=>a+(s.xpEarned||(50+(s.hits||0)*2)),0)
+  const bestStr  = sessions.reduce((a,s)=>Math.max(a,s.bestStreak||0),0)
+  const avgScore = sessions.length ? Math.round(sessions.reduce((a,s)=>a+(s.score||0),0)/sessions.length) : 0
+  tx('h-total-sessions', sessions.length)
+  tx('h-total-xp',       totalXP.toLocaleString()+' XP')
+  tx('h-best-streak',    bestStr+'🔥')
+  tx('h-avg-score',      sessions.length ? avgScore : '—')
+  tx('stat-sessions',    sessions.length)
+  requestAnimationFrame(()=>drawGraph(sessions))
+}
+
+function renderLeaderboard(entries, myUID) {
+  const el = $('lb-list')
+  if (!el) return
+  if (!entries.length) { el.innerHTML='<div class="lb-loading">No entries yet.</div>'; return }
+  const posEmoji=['🥇','🥈','🥉'], posClass=['gold','silver','bronze']
+  el.innerHTML = entries.map((e,i)=>`
+    <div class="lb-item ${e.uid===myUID?'lb-item--me':''}">
+      <div class="lb-pos ${posClass[i]||''}">${posEmoji[i]||i+1}</div>
+      <div class="lb-avatar">${(e.displayName||'?').slice(0,2).toUpperCase()}</div>
+      <div class="lb-name-col">
+        <div class="lb-lb-name">${e.displayName||'Player'}${e.uid===myUID?' (You)':''}</div>
+        <div class="lb-lb-role">${(e.role||'student').charAt(0).toUpperCase()+(e.role||'student').slice(1)}</div>
+      </div>
+      <div class="lb-xp-val">${(e.xp||0).toLocaleString()} XP</div>
+    </div>`).join('')
+  const me = entries.find(e=>e.uid===myUID)
+  if (me) {
+    tx('lb-rank-num',  '#'+me.rank)
+    tx('lb-rank-name', me.displayName||'You')
+    tx('lb-rank-xp',   (me.xp||0).toLocaleString()+' XP')
+    tx('stat-rank',    '#'+me.rank)
+  }
+}
+
+window.AUTH.recordSession = async (data) => {
+  try {
+    const acc      = data.totalRounds > 0 ? Math.round(((data.hits||0)/data.totalRounds)*100) : 0
+    const xpEarned = 50+(data.hits||0)*2+(acc>=90?30:0)
+    const id       = await DB.saveSession({...data, accuracy:acc, xpEarned})
+    const result   = await DB.awardXP(xpEarned)
+    console.log('[dash] session saved:',id,'+'+xpEarned+' XP')
+    return {ok:true, xpEarned, ...result}
+  } catch(e) {
+    console.warn('[dash] recordSession failed:',e.message)
+    return {ok:false}
+  }
+}
+window.AUTH.canStartSession    = ()=>true
+window.AUTH.incrementSession   = ()=>{}
+window.AUTH.startActiveSession = ()=>Promise.resolve()
+window.AUTH.upgradePlan        = async()=>({ok:true})
+window.renderLeaderboard       = ()=>{}
+
+DB.onAuthReady(async (firebaseUser) => {
+  if (!firebaseUser) { window.location.href='login.html'; return }
+  try {
+    const prof = await DB.getUserProfile(firebaseUser.uid)
+    const p    = prof.profile||{}
+    const xp   = prof.xp||0, lv=prof.level||1
+    const name = p.displayName||firebaseUser.displayName||'Athlete'
+    const role = p.role||'student', plan=p.plan||'free'
+
+    const h = new Date().getHours()
+    tx('greeting-time', h<12?'morning':h<17?'afternoon':'evening')
+    tx('greeting-name', name)
+    renderXPData(xp, lv)
+
+    const roleLabel = role.charAt(0).toUpperCase()+role.slice(1)
+    tx('role-badge', roleLabel)
+
+    const av=$('profile-avatar'); if(av) av.textContent=name.slice(0,2).toUpperCase()
+    tx('profile-name',      name)
+    tx('profile-email',     p.email||firebaseUser.email||'—')
+    tx('profile-role-pill', roleLabel)
+    tx('settings-username', name)
+    tx('settings-email',    p.email||firebaseUser.email||'—')
+    tx('settings-plan',     plan==='premium'?'⭐ Premium':'Free')
+
+    const upgBtn=$('btn-upgrade'); if(upgBtn&&plan==='premium') upgBtn.style.display='none'
+
+    const navManage=$('nav-manage')
+    if(navManage&&(role==='teacher'||role==='coach')){
+      navManage.style.display='flex'
+      tx('nav-manage-label', role==='coach'?'Athletes':'Students')
+    }
+
+    DB.listenSessions(sessions => renderSessions(sessions))
+
+    DB.listenUserProfile(data => {
+      renderXPData(data.xp||0, data.level||1)
+      tx('stat-sessions', data.totalSessions||0)
+      tx('stat-streak',   (data.bestStreak||0)+'🔥')
+    })
+
+    DB.listenLeaderboard(entries => renderLeaderboard(entries, firebaseUser.uid))
+
+    console.log('[dash] ✅ booted for', name)
+  } catch(err) {
+    console.error('[dash] boot error:', err.message)
+  }
+})
+</script><script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
 </body>
