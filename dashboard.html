@@ -1772,20 +1772,22 @@ var TR = (function () {
 
   /* ── Load MoveNet ── */
   async function loadModel() {
-    var ms = el('tr-model-status');
-    if (ms) { ms.textContent = 'Loading AI…'; ms.className = 'err'; }
-    var badge = el('tr-pose-badge');
-    if (badge) { badge.textContent = 'LOADING…'; badge.className = ''; }
+     var ms = el('tr-model-status');
+     if (ms) { ms.textContent = 'Loading AI…'; ms.className = 'err'; }
+     var badge = el('tr-pose-badge');
+     if (badge) { badge.textContent = 'LOADING…'; badge.className = ''; }
 
-   await tf.ready();
-    detector = await poseDetection.createDetector(
-      poseDetection.SupportedModels.MoveNet,
-      { runtime: 'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-    );
+     await new Promise(function(resolve) {
+       if (typeof tf !== 'undefined') { resolve(); return; }
+       var t = setInterval(function() {
+         if (typeof tf !== 'undefined') { clearInterval(t); resolve(); }
+       }, 100);
+     });
 
-    if (ms) { ms.textContent = 'AI ready ✓ — stand in frame'; ms.className = 'ok'; }
-    if (badge) { badge.textContent = 'CALIBRATING'; badge.classList.add('tracking'); }
-  }
+  detector = await poseDetection.createDetector(
+    poseDetection.SupportedModels.MoveNet,
+    { runtime: 'tfjs', modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+  );
 
   /* ── Skeleton drawing ── */
   function drawSkeleton(kp, ctx) {
